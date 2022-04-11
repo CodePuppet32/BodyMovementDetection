@@ -13,8 +13,9 @@ except ModuleNotFoundError:
         os.system('pip install {}'.format(required_module))
 
 resnet_model_path = 'models\\resnet50_coco_best_v2.1.0.h5'
-os.mkdir('models')
+
 if not os.path.exists(resnet_model_path):
+    os.mkdir('models')
     url = 'https://github.com/fizyr/keras-retinanet/releases/download/0.5.1/resnet50_coco_best_v2.1.0.h5'
     model_name = 'resnet50_coco_best_v2.1.0.h5'
     c = urllib3.PoolManager()

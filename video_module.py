@@ -11,6 +11,7 @@ import classification_module
 from helper_functions import *
 from tkinter import messagebox
 
+stop_slideshow = False
 fgModel = cv2.createBackgroundSubtractorMOG2()
 photo_list = []
 detection_set = set()
@@ -158,12 +159,13 @@ slideshowThread = None
 def show_frame(self, is_next=True):
     global photo_list
     global slideshowThread
+    global stop_slideshow
 
     # user clicked next or previous button while slideshow was being shown
     if slideshowThread is not None:
         frame_number = self.frame_number
-        self.frame_number = len(photo_list)
-        time.sleep(.9)
+        stop_slideshow = True
+        time.sleep(0.1)
         self.frame_number = frame_number
         slideshowThread = None
         self.slideshow_label.pack_forget()
@@ -218,11 +220,12 @@ def progress_bar_thread_func(to_check):
 def slide_show(self):
     global slideshowThread
     global photo_list
+    global stop_slideshow
 
     if slideshowThread is not None:
         frame_number = self.frame_number
-        self.frame_number = len(photo_list)
-        time.sleep(.9)
+        stop_slideshow = True
+        time.sleep(0.1)
         slideshowThread = None
         self.frame_number = frame_number-1
         self.slideshow_label.pack_forget()
@@ -245,13 +248,20 @@ def slide_show(self):
 def slideshow_thread(self):
     global photo_list
     global slideshowThread
+    global stop_slideshow
     num_photos = len(photo_list)
     self.previous_detection['state'] = NORMAL
 
     while self.frame_number < num_photos:
         self.slideshow_label['image'] = photo_list[self.frame_number]
         self.slideshow_label.image = photo_list[self.frame_number]
+        if stop_slideshow:
+            stop_slideshow = False
+            return
         cv2.waitKey(self.delay)
+        if stop_slideshow:
+            stop_slideshow = False
+            return
         self.frame_number += 1
         num_photos = len(photo_list)
     if self.frame_number == num_photos:
