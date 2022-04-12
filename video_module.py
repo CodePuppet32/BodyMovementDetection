@@ -26,7 +26,6 @@ counter = 0
 stop_all_thread = False
 
 
-# not thread
 def keep_large_components(image, th):
     R = np.zeros(image.shape) < 0
     unique_labels = np.unique(image.flatten())
@@ -38,7 +37,6 @@ def keep_large_components(image, th):
     return np.float32(255 * R)
 
 
-# not thread
 def process_frame(frame, frame_save_path, fgmask_save_path):
     global num_saved_frames
     frame = cv2.resize(frame, dsize=(600, 400))
@@ -53,7 +51,6 @@ def process_frame(frame, frame_save_path, fgmask_save_path):
     num_saved_frames += 1
 
 
-# thread
 def save_frames(video_path):
     vid_capture = cv2.VideoCapture(video_path)
 
@@ -61,7 +58,6 @@ def save_frames(video_path):
     global fgmask_directory
     global stop_all_thread
 
-    threads = []
     create_directory(frame_directory)
     create_directory(fgmask_directory)
 
@@ -214,7 +210,7 @@ def enable_btn(self, to_check):
 def show_frame_thread(self):
     global stop_all_thread
     global photo_list
-    while len(photo_list) < 2:
+    while len(photo_list) < 5:
         if stop_all_thread:
             return
         time.sleep(1)
@@ -224,7 +220,7 @@ def show_frame_thread(self):
     show_frame(self, True)
 
 
-def show_frame(self, is_next=True):
+def show_frame(self, is_next=True, num_frames=1):
     global photo_list
     global slideshowThread
     global stop_slideshow
@@ -246,18 +242,26 @@ def show_frame(self, is_next=True):
         self.slow_btn['state'] = DISABLED
 
     if is_next is True:
-        self.frame_number += 1
+        self.frame_number += num_frames
         self.previous_detection['state'] = NORMAL
+        self.revert5['state'] = NORMAL
     else:
-        self.frame_number -= 1
+        self.frame_number -= num_frames
         self.next_detection['state'] = NORMAL
+        self.skip5['state'] = NORMAL
         self.slideshow_btn['state'] = NORMAL
 
     if self.frame_number == len(photo_list) - 1:
         self.slideshow_btn['state'] = DISABLED
         self.next_detection['state'] = DISABLED
+        self.skip5['state'] = DISABLED
     if self.frame_number == 0:
         self.previous_detection['state'] = DISABLED
+        self.revert5['state'] = DISABLED
+    if self.frame_number < 5:
+        self.revert5['state'] = DISABLED
+    if self.frame_number+5 > len(photo_list)-1:
+        self.skip5['state'] = DISABLED
 
     self.video_label['image'] = photo_list[self.frame_number]
     self.video_label.image = photo_list[self.frame_number]
@@ -300,6 +304,7 @@ def slide_show(self):
     global slideshowThread
     global photo_list
     global stop_slideshow
+    global stop_all_thread
 
     if slideshowThread is not None:
         frame_number = self.frame_number
@@ -312,6 +317,10 @@ def slide_show(self):
         self.slideshow_btn.config(text='Slideshow')
         self.fast_btn['state'] = DISABLED
         self.slow_btn['state'] = DISABLED
+        self.rabbit_btn['state'] = DISABLED
+        self.turtle_btn['state'] = DISABLED
+        if stop_all_thread:
+            return
         threading.Thread(target=show_frame, args=(self,)).start()
         return
 
@@ -320,6 +329,10 @@ def slide_show(self):
     self.slideshow_label.pack()
     self.fast_btn['state'] = NORMAL
     self.slow_btn['state'] = NORMAL
+    self.rabbit_btn['state'] = NORMAL
+    self.turtle_btn['state'] = NORMAL
+    if stop_all_thread:
+        return
     slideshowThread = threading.Thread(target=slideshow_thread, args=(self,))
     slideshowThread.start()
 
@@ -349,6 +362,8 @@ def slideshow_thread(self):
     if self.frame_number == num_photos:
         self.fast_btn['state'] = DISABLED
         self.slow_btn['state'] = DISABLED
+        self.rabbit_btn['state'] = DISABLED
+        self.turtle['state'] = DISABLED
         self.next_detection['state'] = DISABLED
         self.slideshow_btn['state'] = DISABLED
         slideshowThread = None
@@ -384,10 +399,12 @@ def faster(self):
     if stop_all_thread:
         return
     self.slow_btn['state'] = NORMAL
-    if self.delay >= 100:
+    self.turtle_btn['state'] = NORMAL
+    if self.delay > 300:
         self.delay -= 50
     else:
         self.fast_btn['state'] = DISABLED
+        self.rabbit_btn['state'] = DISABLED
 
 
 def slower(self):
@@ -395,10 +412,34 @@ def slower(self):
     if stop_all_thread:
         return
     self.fast_btn['state'] = NORMAL
-    if self.delay <= 1000:
+    self.rabbit_btn['state'] = NORMAL
+    if self.delay < 900:
         self.delay += 50
     else:
         self.slow_btn['state'] = DISABLED
+        self.turtle_btn['state'] = DISABLED
+
+
+def slowest(self):
+    global stop_all_thread
+    if stop_all_thread:
+        return
+    self.fast_btn['state'] = NORMAL
+    self.rabbit_btn['state'] = NORMAL
+    self.delay = 900
+    self.slow_btn['state'] = DISABLED
+    self.turtle_btn['state'] = DISABLED
+
+
+def fastest(self):
+    global stop_all_thread
+    if stop_all_thread:
+        return
+    self.slow_btn['state'] = NORMAL
+    self.turtle_btn['state'] = NORMAL
+    self.delay = 300
+    self.fast_btn['state'] = DISABLED
+    self.rabbit_btn['state'] = DISABLED
 
 
 def stop_threads(self):

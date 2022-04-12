@@ -36,19 +36,32 @@ class WindowSkeleton(tk.Tk):
 
         # ------------- Frame navigation button Frame --------------
         frame_navigation_frame = Frame(self.video_frame)
-        self.previous_detection = Button(frame_navigation_frame, default_button, text='Previous', state=DISABLED, bg='#F2435F',
+        self.revert5 = Button(frame_navigation_frame, default_button, text='-5', state=DISABLED,
+                              bg='#F2435F',
+                              activebackground='white', activeforeground='#F2435F', foreground='white',
+                              command=lambda: video_module.show_frame(self, False, 5))
+        self.previous_detection = Button(frame_navigation_frame, default_button, text='Previous', state=DISABLED,
+                                         bg='#F2435F',
                                          activebackground='white', activeforeground='#F2435F', foreground='white',
                                          command=lambda: video_module.show_frame(self, False))
         self.next_detection = Button(frame_navigation_frame, default_button, text='Next', bg='#F2435F',
                                      activebackground='white', activeforeground='#F2435F', foreground='white',
                                      command=lambda: video_module.show_frame(self, True))
+        self.skip5 = Button(frame_navigation_frame, default_button, text='+5', bg='#F2435F',
+                            activebackground='white', activeforeground='#F2435F', foreground='white',
+                            command=lambda: video_module.show_frame(self, True, 5))
 
-        self.previous_detection.pack(side=LEFT, padx=(0, 5))
-        self.next_detection.pack(padx=(5, 0))
+        self.revert5.pack(side=LEFT)
+        self.previous_detection.pack(side=LEFT, padx=(5, 0))
+        self.next_detection.pack(side=LEFT, padx=5)
+        self.skip5.pack(side=LEFT)
         frame_navigation_frame.pack(side=BOTTOM)
 
         # ------------ slideshow button Frame -------------------
         slideshow_btn_frame = Frame(self.video_frame)
+        self.turtle_btn = Button(slideshow_btn_frame, default_button, text='Turtle', bg='#4338A3', state=DISABLED,
+                                 activebackground='white', activeforeground='#4338A3', foreground='white',
+                                 command=lambda: video_module.slowest(self))
         self.slow_btn = Button(slideshow_btn_frame, default_button, text='Slower', bg='#4338A3', state=DISABLED,
                                activebackground='white', activeforeground='#4338A3', foreground='white',
                                command=lambda: video_module.slower(self))
@@ -58,10 +71,15 @@ class WindowSkeleton(tk.Tk):
         self.fast_btn = Button(slideshow_btn_frame, default_button, text='Faster', bg='#4338A3', state=DISABLED,
                                activebackground='white', activeforeground='#4338A3', foreground='white',
                                command=lambda: video_module.faster(self))
+        self.rabbit_btn = Button(slideshow_btn_frame, default_button, text='Rabbit', bg='#4338A3', state=DISABLED,
+                                 activebackground='white', activeforeground='#4338A3', foreground='white',
+                                 command=lambda: video_module.fastest(self))
 
+        self.turtle_btn.pack(side=LEFT, padx=10)
         self.slow_btn.pack(side=LEFT)
         self.slideshow_btn.pack(side=LEFT, padx=10)
         self.fast_btn.pack(side=LEFT)
+        self.rabbit_btn.pack(side=LEFT, padx=10)
         slideshow_btn_frame.pack(side=TOP)
 
         self.video_label = Label(self.video_frame)
