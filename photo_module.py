@@ -14,7 +14,11 @@ def show_photo(self):
 
     img_name = image_path.split('\\')[-1]
     image = cv2.imread(image_path)
-    image = cv2.resize(image, dsize=(600, 450))
+    try:
+        image = cv2.resize(image, dsize=(600, 450))
+    except cv2.error:
+        messagebox.showerror('Wrong File', 'Image is invalid')
+        return
 
     self.video_frame.place_forget()
     self.webcam_frame.place_forget()

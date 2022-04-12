@@ -93,7 +93,7 @@ class WindowSkeleton(tk.Tk):
         button_frame.place(relwidth=.8, relx=.1, rely=.2)
         # Close button
         Button(self.bottom_frame, default_button, text='Close', bg='#71B9BD', activeforeground='#71B9BD',
-               command=self.destroy).pack(side=BOTTOM, pady=8)
+               command=lambda: video_module.stop_threads(self)).pack(side=BOTTOM, pady=8)
         self.bottom_frame.grid(row=2, column=0, sticky='nsew')
 
         # dynamic sizing of the three frames namely top, mid and bottom

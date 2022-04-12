@@ -15,8 +15,17 @@ stop_slideshow = False
 fgModel = cv2.createBackgroundSubtractorMOG2()
 photo_list = []
 detection_set = set()
+current_read_frames = 0
+num_saved_frames = 0
+frame_directory = ''
+fgmask_directory = ''
+detection_directory = ''
+save_frame_thread = threading.Thread
+slideshowThread = threading.Thread
+counter = 0
 
 
+# not thread
 def keep_large_components(image, th):
     R = np.zeros(image.shape) < 0
     unique_labels = np.unique(image.flatten())
@@ -28,7 +37,9 @@ def keep_large_components(image, th):
     return np.float32(255 * R)
 
 
+# not thread
 def process_frame(frame, frame_save_path, fgmask_save_path):
+    global num_saved_frames
     frame = cv2.resize(frame, dsize=(600, 400))
     # foreground mask
     fgmask = fgModel.apply(frame)
@@ -38,57 +49,61 @@ def process_frame(frame, frame_save_path, fgmask_save_path):
     fgmask = keep_large_components(label_image, 800)
     cv2.imwrite(fgmask_save_path, fgmask)
     cv2.imwrite(frame_save_path, frame)
+    num_saved_frames += 1
 
 
-def save_frames(video_path, vid_name):
+# thread
+def save_frames(video_path):
     vid_capture = cv2.VideoCapture(video_path)
 
-    frame_directory = 'savedFrames\\frames\\' + vid_name
-    fgmask_directory = 'savedFrames\\fgmask\\' + vid_name
+    global frame_directory
+    global fgmask_directory
     create_directory(frame_directory)
     create_directory(fgmask_directory)
 
-    try:
-        vid_frame_counter = 0
+    vid_frame_counter = 0
+    ret, frame = vid_capture.read()
+    while ret:
+        frame_path = frame_directory + '\\' + str(vid_frame_counter) + '.jpg'
+        fgmask_path = fgmask_directory + '\\' + str(vid_frame_counter) + '.jpg'
+        threading.Thread(target=process_frame, args=(frame, frame_path, fgmask_path)).start()
+        vid_frame_counter += 1
+        # to read every 4th frame
+        skip_counter = 1
+        while skip_counter != 4:
+            skip_counter += 1
+            vid_capture.read()
         ret, frame = vid_capture.read()
-        while ret:
-            frame_path = frame_directory + '\\' + str(vid_frame_counter) + '.jpg'
-            fgmask_path = fgmask_directory + '\\' + str(vid_frame_counter) + '.jpg'
-            threading.Thread(target=process_frame, args=(frame, frame_path, fgmask_path)).start()
-            vid_frame_counter += 1
-            # to read every 6th frame
-            counter = 1
-            while counter != 6:
-                counter += 1
-                vid_capture.read()
-            ret, frame = vid_capture.read()
-    finally:
-        vid_capture.release()
+
+    vid_capture.release()
 
 
-def save_sequence(c, counter, output_path):
-    global photo_list
-    k = 1
-    for frame in c:
-        imName = str(counter) + '_' + str(k)
-        finalPath = os.path.join(output_path, imName)
-        classification_module.save_detection(frame, finalPath)
-        photo_list.append(ImageTk.PhotoImage(Image.fromarray(frame[:, :, ::-1])))
-        k += 1
+def save_frame_new():
+    global save_frame_thread
+    global num_saved_frames
+
+    while save_frame_thread.is_alive():
+        while num_saved_frames <= 50:
+            time.sleep(.5)
+        new_thread()
+        num_saved_frames -= 50
 
 
-def save_movement_frames(frame_directory, fgmask_directory, detection_directory, to_check):
-    while to_check.is_alive():
-        time.sleep(1)
-
+def new_thread():
+    global counter
+    global fgmask_directory
+    global frame_directory
     idx = []
     C = []
 
-    for counter, img_name in enumerate(sorted(os.listdir(frame_directory), key=len)):
-        fgmask = cv2.imread(os.path.join(fgmask_directory, img_name))
+    dir_list = sorted(os.listdir(frame_directory), key=len)
 
+    for i in range(50):
+        fgmask_dir = os.path.join(fgmask_directory, dir_list[i])
+        frame_dir = os.path.join(frame_directory, dir_list[i])
+        fgmask = cv2.imread(fgmask_dir)
         if np.sum(fgmask) > 0:
-            frame = cv2.imread(os.path.join(frame_directory, img_name))
+            frame = cv2.imread(frame_dir)
             idx.append(counter)
             C.append(frame)
 
@@ -96,13 +111,43 @@ def save_movement_frames(frame_directory, fgmask_directory, detection_directory,
             save_sequence(C, idx[0], detection_directory)
             idx = []
             C = []
-    if len(C) >= 2:
-        save_sequence(C, -1, detection_directory)
+
+        counter += 1
+        os.remove(fgmask_dir)
+        os.remove(frame_dir)
+    if len(idx) >= 2:
+        save_sequence(C, detection_directory)
 
 
+def save_sequence(c, output_path):
+    global photo_list
+    k = 1
+    for frame in c:
+        imName = str(k)
+        finalPath = os.path.join(output_path, imName)
+        classification_module.save_detection(frame, finalPath)
+        photo_list.append(ImageTk.PhotoImage(Image.fromarray(frame[:, :, ::-1])))
+        k += 1
+
+
+# right now I am reading a video file
+# extracting all its frames and saving image files in savedFrames
+# What I want to do is
+#       - Check if 20 or more frames have been saved
+#               - Yes -> Read those 20 frames and save in a list
+#                        Apply save_moment_frames function and save detections of those 20 frames and display
+#               - No -> continue
+
+
+# this is where thread will start its execution from
 def show_video(self):
     global photo_list
+    # to make sure we do not get frames of previous processed video
+    # if we do not empty this list then we will get detected frames of previous video(s)
     photo_list = []
+
+    # path to the video
+    # it can be empty, so we need to check
     video_path = get_video_path()
     if video_path == '':
         messagebox.showerror('Empty Path', 'Path to video cannot be empty')
@@ -113,23 +158,25 @@ def show_video(self):
     self.video_btn['state'] = DISABLED
 
     vid_name = video_path.split('\\')[-1]
+    global frame_directory
+    global fgmask_directory
+    global detection_directory
+    global save_frame_thread
+
     frame_directory = 'savedFrames\\frames\\' + vid_name
     fgmask_directory = 'savedFrames\\fgmask\\' + vid_name
     detection_directory = 'detections\\videos\\' + vid_name
     create_directory(detection_directory)
-    try:
-        save_frame_thread = threading.Thread(target=save_frames, args=(video_path, vid_name))
-        save_frame_thread.start()
-        save_sequence_thread = threading.Thread(target=save_movement_frames, args=(
-            frame_directory, fgmask_directory, detection_directory, save_frame_thread))
-        save_sequence_thread.start()
-        first_frame = threading.Thread(target=show_frame_thread, args=(self,))
-        first_frame.start()
-        progress_bar_thread = threading.Thread(target=progress_bar_thread_func, args=(first_frame,))
-        progress_bar_thread.start()
-        threading.Thread(target=enable_btn, args=(self, save_sequence_thread)).start()
-    finally:
-        return
+
+    save_frame_thread = threading.Thread(target=save_frames, args=(video_path, vid_name))
+    save_frame_thread.start()
+    save_sequence_thread = threading.Thread(target=save_frame_new, args=())
+    save_sequence_thread.start()
+    first_frame = threading.Thread(target=show_frame_thread, args=(self,))
+    first_frame.start()
+    progress_bar_thread = threading.Thread(target=progress_bar_thread_func, args=(first_frame,))
+    progress_bar_thread.start()
+    threading.Thread(target=enable_btn, args=(self, save_sequence_thread)).start()
 
 
 def enable_btn(self, to_check):
@@ -151,9 +198,6 @@ def show_frame_thread(self):
     self.webcam_frame.place_forget()
     self.video_frame.place(x=0, y=0, relheight=1, relwidth=1)
     show_frame(self, True)
-
-
-slideshowThread = None
 
 
 def show_frame(self, is_next=True):
@@ -182,7 +226,7 @@ def show_frame(self, is_next=True):
         self.next_detection['state'] = NORMAL
         self.slideshow_btn['state'] = NORMAL
 
-    if self.frame_number == len(photo_list)-1:
+    if self.frame_number == len(photo_list) - 1:
         self.slideshow_btn['state'] = DISABLED
         self.next_detection['state'] = DISABLED
     if self.frame_number == 0:
@@ -203,18 +247,21 @@ def progress_bar_thread_func(to_check):
     processing_text = Label(progress_bar_window, text='Processing Video ...')
     processing_text.pack()
 
-    def progress_bar_update():
-        processing_text_counter = 0
-        while to_check.is_alive():
-            progress['value'] = processing_text_counter % 100
-            time.sleep(0.1)
-            processing_text_counter += 2
-        progress['value'] = 100
-        processing_text['text'] = 'Almost Done'
-        time.sleep(.2)
+    try:
+        def progress_bar_update():
+            processing_text_counter = 0
+            while to_check.is_alive():
+                progress['value'] = processing_text_counter % 100
+                time.sleep(0.1)
+                processing_text_counter += 2
+            progress['value'] = 100
+            processing_text['text'] = 'Almost Done'
+            time.sleep(.2)
 
-    progress_bar_update()
-    progress_bar_window.destroy()
+        progress_bar_update()
+        progress_bar_window.destroy()
+    finally:
+        return
 
 
 def slide_show(self):
@@ -227,7 +274,7 @@ def slide_show(self):
         stop_slideshow = True
         time.sleep(0.1)
         slideshowThread = None
-        self.frame_number = frame_number-1
+        self.frame_number = frame_number - 1
         self.slideshow_label.pack_forget()
         self.video_label.pack(fill=Y)
         self.slideshow_btn.config(text='Slideshow')
@@ -274,12 +321,29 @@ def slideshow_thread(self):
         self.slideshow_label.pack_forget()
         self.video_label.pack(fill=Y)
         self.slideshow_btn.config(text='Slideshow')
+        threading.Thread(target=btn_enable_thread, args=(self,)).start()
         threading.Thread(target=show_frame, args=(self,)).start()
+
+
+def btn_enable_thread(self):
+    global photo_list
+    global save_frame_thread
+
+    while save_frame_thread.is_alive():
+        time.sleep(1)
+        if self.frame_number < len(photo_list)-1:
+            self.next_detection['state'] = NORMAL
+            self.slideshow_btn['state'] = NORMAL
+            break
+
+    if self.frame_number < len(photo_list) - 1:
+        self.next_detection['state'] = NORMAL
+        self.slideshow_btn['state'] = NORMAL
 
 
 def faster(self):
     self.slow_btn['state'] = NORMAL
-    if self.delay >= 200:
+    if self.delay >= 100:
         self.delay -= 50
     else:
         self.fast_btn['state'] = DISABLED
@@ -291,3 +355,7 @@ def slower(self):
         self.delay += 50
     else:
         self.slow_btn['state'] = DISABLED
+
+
+def stop_threads(self):
+    self.destroy()

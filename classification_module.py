@@ -1,4 +1,3 @@
-import threading
 from imageai.Detection import ObjectDetection
 
 model_weight_path = "models/resnet50_coco_best_v2.1.0.h5"
