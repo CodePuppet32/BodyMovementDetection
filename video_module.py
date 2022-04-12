@@ -21,8 +21,9 @@ frame_directory = ''
 fgmask_directory = ''
 detection_directory = ''
 save_frame_thread = threading.Thread
-slideshowThread = threading.Thread
+slideshowThread = None
 counter = 0
+stop_all_thread = False
 
 
 # not thread
@@ -58,12 +59,17 @@ def save_frames(video_path):
 
     global frame_directory
     global fgmask_directory
+    global stop_all_thread
+
+    threads = []
     create_directory(frame_directory)
     create_directory(fgmask_directory)
 
     vid_frame_counter = 0
     ret, frame = vid_capture.read()
     while ret:
+        if stop_all_thread:
+            return
         frame_path = frame_directory + '\\' + str(vid_frame_counter) + '.jpg'
         fgmask_path = fgmask_directory + '\\' + str(vid_frame_counter) + '.jpg'
         threading.Thread(target=process_frame, args=(frame, frame_path, fgmask_path)).start()
@@ -81,10 +87,13 @@ def save_frames(video_path):
 def save_frame_new():
     global save_frame_thread
     global num_saved_frames
+    global stop_all_thread
 
     while save_frame_thread.is_alive():
-        while num_saved_frames <= 50:
+        while num_saved_frames <= 50 and not stop_all_thread:
             time.sleep(.5)
+        if stop_all_thread:
+            return
         new_thread()
         num_saved_frames -= 50
 
@@ -93,12 +102,15 @@ def new_thread():
     global counter
     global fgmask_directory
     global frame_directory
+    global stop_all_thread
     idx = []
     C = []
 
     dir_list = sorted(os.listdir(frame_directory), key=len)
 
     for i in range(50):
+        if stop_all_thread:
+            return
         fgmask_dir = os.path.join(fgmask_directory, dir_list[i])
         frame_dir = os.path.join(frame_directory, dir_list[i])
         fgmask = cv2.imread(fgmask_dir)
@@ -116,18 +128,24 @@ def new_thread():
         os.remove(fgmask_dir)
         os.remove(frame_dir)
     if len(idx) >= 2:
-        save_sequence(C, detection_directory)
+        save_sequence(C, len(idx), detection_directory)
 
 
-def save_sequence(c, output_path):
+def save_sequence(c, frame_counter, output_path):
     global photo_list
+    global stop_all_thread
     k = 1
-    for frame in c:
-        imName = str(k)
-        finalPath = os.path.join(output_path, imName)
-        classification_module.save_detection(frame, finalPath)
-        photo_list.append(ImageTk.PhotoImage(Image.fromarray(frame[:, :, ::-1])))
-        k += 1
+    try:
+        for frame in c:
+            if stop_all_thread:
+                return
+            imName = str(frame_counter) + '_' + str(k)
+            finalPath = os.path.join(output_path, imName)
+            classification_module.save_detection(frame, finalPath)
+            photo_list.append(ImageTk.PhotoImage(Image.fromarray(frame[:, :, ::-1])))
+            k += 1
+    finally:
+        return
 
 
 # right now I am reading a video file
@@ -168,7 +186,7 @@ def show_video(self):
     detection_directory = 'detections\\videos\\' + vid_name
     create_directory(detection_directory)
 
-    save_frame_thread = threading.Thread(target=save_frames, args=(video_path, vid_name))
+    save_frame_thread = threading.Thread(target=save_frames, args=(video_path,))
     save_frame_thread.start()
     save_sequence_thread = threading.Thread(target=save_frame_new, args=())
     save_sequence_thread.start()
@@ -180,8 +198,11 @@ def show_video(self):
 
 
 def enable_btn(self, to_check):
+    global stop_all_thread
     try:
         while to_check.is_alive():
+            if stop_all_thread:
+                return
             (time.sleep(2))
         self.webcam_btn['state'] = NORMAL
         self.photo_btn['state'] = NORMAL
@@ -191,8 +212,11 @@ def enable_btn(self, to_check):
 
 
 def show_frame_thread(self):
+    global stop_all_thread
     global photo_list
     while len(photo_list) < 2:
+        if stop_all_thread:
+            return
         time.sleep(1)
     self.image_frame.place_forget()
     self.webcam_frame.place_forget()
@@ -204,6 +228,9 @@ def show_frame(self, is_next=True):
     global photo_list
     global slideshowThread
     global stop_slideshow
+    global stop_all_thread
+    if stop_all_thread:
+        return
 
     # user clicked next or previous button while slideshow was being shown
     if slideshowThread is not None:
@@ -240,6 +267,9 @@ def show_frame(self, is_next=True):
 # shows progress bar until all the frames of the video are saved
 # returns void
 def progress_bar_thread_func(to_check):
+    global stop_all_thread
+    if stop_all_thread:
+        return
     progress_bar_window = Toplevel()
     progress_bar_window.geometry('200x60')
     progress = Progressbar(progress_bar_window, orient=HORIZONTAL, length=100, mode='indeterminate')
@@ -251,6 +281,8 @@ def progress_bar_thread_func(to_check):
         def progress_bar_update():
             processing_text_counter = 0
             while to_check.is_alive():
+                if stop_all_thread:
+                    return
                 progress['value'] = processing_text_counter % 100
                 time.sleep(0.1)
                 processing_text_counter += 2
@@ -298,8 +330,11 @@ def slideshow_thread(self):
     global stop_slideshow
     num_photos = len(photo_list)
     self.previous_detection['state'] = NORMAL
+    global stop_all_thread
 
     while self.frame_number < num_photos:
+        if stop_all_thread:
+            return
         self.slideshow_label['image'] = photo_list[self.frame_number]
         self.slideshow_label.image = photo_list[self.frame_number]
         if stop_slideshow:
@@ -326,12 +361,15 @@ def slideshow_thread(self):
 
 
 def btn_enable_thread(self):
+    global stop_all_thread
     global photo_list
     global save_frame_thread
 
     while save_frame_thread.is_alive():
+        if stop_all_thread:
+            return
         time.sleep(1)
-        if self.frame_number < len(photo_list)-1:
+        if self.frame_number < len(photo_list) - 1:
             self.next_detection['state'] = NORMAL
             self.slideshow_btn['state'] = NORMAL
             break
@@ -342,6 +380,9 @@ def btn_enable_thread(self):
 
 
 def faster(self):
+    global stop_all_thread
+    if stop_all_thread:
+        return
     self.slow_btn['state'] = NORMAL
     if self.delay >= 100:
         self.delay -= 50
@@ -350,6 +391,9 @@ def faster(self):
 
 
 def slower(self):
+    global stop_all_thread
+    if stop_all_thread:
+        return
     self.fast_btn['state'] = NORMAL
     if self.delay <= 1000:
         self.delay += 50
@@ -358,4 +402,6 @@ def slower(self):
 
 
 def stop_threads(self):
+    global stop_all_thread
+    stop_all_thread = True
     self.destroy()
