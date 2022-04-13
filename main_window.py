@@ -1,11 +1,10 @@
-import sys
 from tkinter import messagebox
-
 import install_packages_module
 import window_skelton
 
 
 def on_closing():
+    messagebox.showwarning("Caution", "Use Close button to Exit")
     return
 
 
