@@ -10,6 +10,7 @@ from PIL import Image
 import classification_module
 from helper_functions import *
 from tkinter import messagebox
+from gloval_vars import *
 
 stop_slideshow = False
 fgModel = cv2.createBackgroundSubtractorMOG2()
@@ -26,7 +27,11 @@ counter = 0
 stop_all_thread = False
 
 
+# checked
 def keep_large_components(image, th):
+    global stop_all_thread
+    if stop_all_thread:
+        return
     R = np.zeros(image.shape) < 0
     unique_labels = np.unique(image.flatten())
     for label in unique_labels:
@@ -37,8 +42,12 @@ def keep_large_components(image, th):
     return np.float32(255 * R)
 
 
+# checked
 def process_frame(frame, frame_save_path, fgmask_save_path):
     global num_saved_frames
+    global stop_all_thread
+    if stop_all_thread:
+        return
     frame = cv2.resize(frame, dsize=(600, 400))
     # foreground mask
     fgmask = fgModel.apply(frame)
@@ -46,7 +55,11 @@ def process_frame(frame, frame_save_path, fgmask_save_path):
     fgmask = cv2.morphologyEx(np.float32(fgmask), cv2.MORPH_OPEN, k_r)
     _, label_image = cv2.connectedComponents(np.array(fgmask > 0, np.uint8))
     fgmask = keep_large_components(label_image, 800)
+    if stop_all_thread:
+        return
     cv2.imwrite(fgmask_save_path, fgmask)
+    if stop_all_thread:
+        return
     cv2.imwrite(frame_save_path, frame)
     num_saved_frames += 1
 
@@ -72,11 +85,10 @@ def save_frames(video_path):
         vid_frame_counter += 1
         # to read every 4th frame
         skip_counter = 1
-        while skip_counter != 4:
+        while skip_counter != read_nth_frame_video:
             skip_counter += 1
             vid_capture.read()
         ret, frame = vid_capture.read()
-
     vid_capture.release()
 
 
@@ -86,12 +98,12 @@ def save_frame_new():
     global stop_all_thread
 
     while save_frame_thread.is_alive():
-        while num_saved_frames <= 50 and not stop_all_thread:
-            time.sleep(.5)
+        while num_saved_frames <= wait_for_n_frames and not stop_all_thread:
+            time.sleep(.01)
         if stop_all_thread:
             return
         new_thread()
-        num_saved_frames -= 50
+        num_saved_frames -= wait_for_n_frames
 
 
 def new_thread():
@@ -104,7 +116,7 @@ def new_thread():
 
     dir_list = sorted(os.listdir(frame_directory), key=len)
 
-    for i in range(50):
+    for i in range(wait_for_n_frames):
         if stop_all_thread:
             return
         fgmask_dir = os.path.join(fgmask_directory, dir_list[i])
@@ -153,7 +165,7 @@ def save_sequence(c, frame_counter, output_path):
 #               - No -> continue
 
 
-# this is where thread will start its execution from
+# this is where thread will start its execution from checked
 def show_video(self):
     global photo_list
     # to make sure we do not get frames of previous processed video
@@ -258,9 +270,9 @@ def show_frame(self, is_next=True, num_frames=1):
     if self.frame_number == 0:
         self.previous_detection['state'] = DISABLED
         self.revert5['state'] = DISABLED
-    if self.frame_number < 5:
+    if self.frame_number - backtrack_frames < 0:
         self.revert5['state'] = DISABLED
-    if self.frame_number+5 > len(photo_list)-1:
+    if self.frame_number+skip_frames > len(photo_list)-1:
         self.skip5['state'] = DISABLED
 
     self.video_label['image'] = photo_list[self.frame_number]
@@ -288,7 +300,7 @@ def progress_bar_thread_func(to_check):
                 if stop_all_thread:
                     return
                 progress['value'] = processing_text_counter % 100
-                time.sleep(0.1)
+                time.sleep(progress_bar_speed)
                 processing_text_counter += 2
             progress['value'] = 100
             processing_text['text'] = 'Almost Done'
@@ -400,7 +412,7 @@ def faster(self):
         return
     self.slow_btn['state'] = NORMAL
     self.turtle_btn['state'] = NORMAL
-    if self.delay > 300:
+    if self.delay > lowest_slideshow_delay:
         self.delay -= 50
     else:
         self.fast_btn['state'] = DISABLED
@@ -413,7 +425,7 @@ def slower(self):
         return
     self.fast_btn['state'] = NORMAL
     self.rabbit_btn['state'] = NORMAL
-    if self.delay < 900:
+    if self.delay < highest_slideshow_delay:
         self.delay += 50
     else:
         self.slow_btn['state'] = DISABLED
@@ -426,7 +438,7 @@ def slowest(self):
         return
     self.fast_btn['state'] = NORMAL
     self.rabbit_btn['state'] = NORMAL
-    self.delay = 900
+    self.delay = highest_slideshow_delay
     self.slow_btn['state'] = DISABLED
     self.turtle_btn['state'] = DISABLED
 
@@ -437,7 +449,7 @@ def fastest(self):
         return
     self.slow_btn['state'] = NORMAL
     self.turtle_btn['state'] = NORMAL
-    self.delay = 300
+    self.delay = lowest_slideshow_delay
     self.fast_btn['state'] = DISABLED
     self.rabbit_btn['state'] = DISABLED
 

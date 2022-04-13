@@ -36,10 +36,9 @@ class WindowSkeleton(tk.Tk):
 
         # ------------- Frame navigation button Frame --------------
         frame_navigation_frame = Frame(self.video_frame)
-        self.revert5 = Button(frame_navigation_frame, default_button, text='-5', state=DISABLED,
-                              bg='#F2435F',
-                              activebackground='white', activeforeground='#F2435F', foreground='white',
-                              command=lambda: video_module.show_frame(self, False, 5))
+        self.revert5 = Button(frame_navigation_frame, default_button, text='-{}'.format(backtrack_frames), state=DISABLED,
+                              bg='#F2435F', activebackground='white', activeforeground='#F2435F', foreground='white',
+                              command=lambda: video_module.show_frame(self, False, backtrack_frames))
         self.previous_detection = Button(frame_navigation_frame, default_button, text='Previous', state=DISABLED,
                                          bg='#F2435F',
                                          activebackground='white', activeforeground='#F2435F', foreground='white',
@@ -47,9 +46,9 @@ class WindowSkeleton(tk.Tk):
         self.next_detection = Button(frame_navigation_frame, default_button, text='Next', bg='#F2435F',
                                      activebackground='white', activeforeground='#F2435F', foreground='white',
                                      command=lambda: video_module.show_frame(self, True))
-        self.skip5 = Button(frame_navigation_frame, default_button, text='+5', bg='#F2435F',
+        self.skip5 = Button(frame_navigation_frame, default_button, text='+{}'.format(skip_frames), bg='#F2435F',
                             activebackground='white', activeforeground='#F2435F', foreground='white',
-                            command=lambda: video_module.show_frame(self, True, 5))
+                            command=lambda: video_module.show_frame(self, True, skip_frames))
 
         self.revert5.pack(side=LEFT)
         self.previous_detection.pack(side=LEFT, padx=(5, 0))
