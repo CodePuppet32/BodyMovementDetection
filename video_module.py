@@ -182,6 +182,7 @@ def show_video(self):
     self.webcam_btn['state'] = DISABLED
     self.photo_btn['state'] = DISABLED
     self.video_btn['state'] = DISABLED
+    self.close_btn['state'] = DISABLED
 
     vid_name = video_path.split('\\')[-1]
     global frame_directory
@@ -200,17 +201,14 @@ def show_video(self):
     save_sequence_thread.start()
     first_frame = threading.Thread(target=show_frame_thread, args=(self,))
     first_frame.start()
-    progress_bar_thread = threading.Thread(target=progress_bar_thread_func, args=(first_frame,))
+    progress_bar_thread = threading.Thread(target=progress_bar_thread_func, args=(first_frame,self,))
     progress_bar_thread.start()
     threading.Thread(target=enable_btn, args=(self, save_sequence_thread)).start()
 
 
 def enable_btn(self, to_check):
-    global stop_all_thread
     try:
         while to_check.is_alive():
-            if stop_all_thread:
-                return
             (time.sleep(2))
         self.webcam_btn['state'] = NORMAL
         self.photo_btn['state'] = NORMAL
@@ -282,7 +280,7 @@ def show_frame(self, is_next=True, num_frames=1):
 # Accepts one parameter - to_check->Thread
 # shows progress bar until all the frames of the video are saved
 # returns void
-def progress_bar_thread_func(to_check):
+def progress_bar_thread_func(to_check, self):
     global stop_all_thread
     if stop_all_thread:
         return
@@ -309,6 +307,7 @@ def progress_bar_thread_func(to_check):
         progress_bar_update()
         progress_bar_window.destroy()
     finally:
+        self.close_btn['state'] = NORMAL
         return
 
 
@@ -316,7 +315,6 @@ def slide_show(self):
     global slideshowThread
     global photo_list
     global stop_slideshow
-    global stop_all_thread
 
     if slideshowThread is not None:
         frame_number = self.frame_number
@@ -331,8 +329,6 @@ def slide_show(self):
         self.slow_btn['state'] = DISABLED
         self.rabbit_btn['state'] = DISABLED
         self.turtle_btn['state'] = DISABLED
-        if stop_all_thread:
-            return
         threading.Thread(target=show_frame, args=(self,)).start()
         return
 
@@ -343,8 +339,6 @@ def slide_show(self):
     self.slow_btn['state'] = NORMAL
     self.rabbit_btn['state'] = NORMAL
     self.turtle_btn['state'] = NORMAL
-    if stop_all_thread:
-        return
     slideshowThread = threading.Thread(target=slideshow_thread, args=(self,))
     slideshowThread.start()
 
