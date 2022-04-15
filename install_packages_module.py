@@ -1,24 +1,55 @@
-import urllib3
+import threading
+from tkinter import *
+from tkinter.ttk import Progressbar
+import time
 import os
 import shutil
 
-try:
-    import cv2
-    import tensorflow
-    import PIL
-    import keras
-except ModuleNotFoundError:
-    required_modules = ['opencv-python==4.5.5.64', 'tensorflow==2.8.0', 'pillow==9.1.0', 'keras==2.8.0']
-    for required_module in required_modules:
-        os.system('pip install {}'.format(required_module))
 
-resnet_model_path = 'models\\resnet50_coco_best_v2.1.0.h5'
+def progress_bar_thread_func(to_check):
+    global install_window
+    progress = Progressbar(install_window, orient=HORIZONTAL, length=100, mode='indeterminate')
+    progress.pack()
+    processing_text = Label(install_window, text='Installing Necessary files')
+    processing_text.pack()
 
-if not os.path.exists(resnet_model_path):
-    os.mkdir('models')
-    url = 'https://github.com/fizyr/keras-retinanet/releases/download/0.5.1/resnet50_coco_best_v2.1.0.h5'
-    model_name = 'resnet50_coco_best_v2.1.0.h5'
-    c = urllib3.PoolManager()
+    def progress_bar_update():
+        processing_text_counter = 0
+        while to_check.is_alive():
+            progress['value'] = processing_text_counter % 100
+            time.sleep(0.1)
+            processing_text_counter += 2
+    progress_bar_update()
+    progress['value'] = 100
+    processing_text['text'] = 'Installation successful.'
+    close_btn['text'] = 'Run Program'
+    close_btn['state'] = NORMAL
 
-    with c.request('GET', url, preload_content=False) as resp, open(resnet_model_path, 'wb') as out_file:
-        shutil.copyfileobj(resp, out_file)
+
+def install_modules():
+    os.system('pip3 install --upgrade pip')
+    os.system('pip install urllib3')
+    import urllib3
+    os.system('pip3 install -r requirements.txt')
+
+    resnet_model_path = 'models\\resnet50_coco_best_v2.1.0.h5'
+    if not os.path.exists(resnet_model_path):
+        os.mkdir('models')
+        url = 'https://github.com/fizyr/keras-retinanet/releases/download/0.5.1/resnet50_coco_best_v2.1.0.h5'
+        c = urllib3.PoolManager()
+
+        with c.request('GET', url, preload_content=False) as resp:
+            with open(resnet_model_path, 'wb') as out_file:
+                shutil.copyfileobj(resp, out_file)
+
+
+install_window = Tk()
+install_window.title('Setup in Progress')
+install_window.geometry('200x80')
+close_btn = Button(install_window, text='Please Wait', state=DISABLED, command=install_window.destroy)
+close_btn.pack(side=BOTTOM, pady=8)
+install_module_thread = threading.Thread(target=install_modules, args=())
+install_module_thread.start()
+progress_bar_thread = threading.Thread(target=progress_bar_thread_func, args=(install_module_thread,))
+progress_bar_thread.start()
+install_window.mainloop()
