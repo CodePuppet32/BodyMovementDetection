@@ -28,6 +28,11 @@ wait_for_n_frames = 10
 # flash is the fastest with lower accuracy while normal is the slowest with maximum accuracy
 detection_speed = 'flash'
 
+
+# how many detections should be made before presenting on the screen
+# minimum 1
+num_detections_before_presented = 2
+
 default_slideshow_delay = 600
 highest_slideshow_delay = 900
 lowest_slideshow_delay = 300
