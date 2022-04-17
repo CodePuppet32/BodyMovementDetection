@@ -1,3 +1,4 @@
+import threading
 from tkinter import messagebox
 import cv2
 import classification_module
@@ -7,11 +8,16 @@ from PIL import ImageTk
 
 
 def show_photo(self):
+
     image_path = get_image_path()
     if image_path == '':
         messagebox.showerror('Empty Path', 'Path to image cannot be empty')
         return
 
+    threading.Thread(target=show_photo_thread, args=(self, image_path)).start()
+
+
+def show_photo_thread(self, image_path):
     img_name = image_path.split('\\')[-1]
     image = cv2.imread(image_path)
     try:

@@ -10,6 +10,7 @@ from helper_functions import *
 # Accepts no parameter
 # Returns void
 def show_webcam(self):
+
     self.vid = cv2.VideoCapture(0)
     try:
         _, frame = self.vid.read()
@@ -31,7 +32,7 @@ def start_webcam_feed(self):
     webcam_feed_save_path = 'DetectedImage\\webcam\\image'
     while 1:
         _, frame = self.vid.read()
-        classification_module.save_detection(frame, webcam_feed_save_path)
+        classification_module.save_detection(frame, webcam_feed_save_path+str(counter))
         image = ImageTk.PhotoImage(Image.fromarray(frame[:, :, ::-1]))
         self.webcam_frame['image'] = image
         self.webcam_frame.image = image

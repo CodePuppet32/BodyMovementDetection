@@ -22,9 +22,42 @@ frame_directory = ''
 fgmask_directory = ''
 detection_directory = ''
 save_frame_thread = threading.Thread
+save_sequence_thread = threading.Thread
 slideshowThread = None
 counter = 0
 stop_all_thread = False
+
+
+def unlock_skip_n_btn_thread(self):
+    while save_sequence_thread.is_alive():
+        if len(photo_list) > skip_frames:
+            self.skip5['state'] = NORMAL
+            return
+        time.sleep(0.1)
+
+
+def update_total_frames_thread(self):
+    while save_sequence_thread.is_alive():
+        current_frame = self.frame_number + 1
+        total_frames = len(photo_list)
+
+        to_display = '{}/{}'.format(current_frame, total_frames)
+        self.num_frame_label['text'] = to_display
+        time.sleep(0.1)
+
+    current_frame = self.frame_number + 1
+    total_frames = len(photo_list)
+    to_display = '{}/{}'.format(current_frame, total_frames)
+    self.num_frame_label['text'] = to_display
+
+
+# thread for showing total detections and current detection number
+def show_num_frames_label(self):
+    current_frame = self.frame_number+1
+    total_frames = len(photo_list)
+
+    to_display = '{}/{}'.format(current_frame, total_frames)
+    self.num_frame_label['text'] = to_display
 
 
 # this is where thread will start its execution from checked
@@ -33,11 +66,13 @@ def show_video(self):
     global frame_directory
     global fgmask_directory
     global detection_directory
+    global save_sequence_thread
     global save_frame_thread
 
     # to make sure we do not get frames of previous processed video
     # if we do not empty this list then we will get detected frames of previous video(s)
     photo_list = []
+    self.frame_number = -1
 
     # path to the video
     # it can be empty, so we need to check
@@ -143,12 +178,19 @@ def detect_and_save_frames_helper():
     global stop_all_thread
 
     while save_frame_thread.is_alive():
-        while num_saved_frames <= wait_for_n_frames and not stop_all_thread:
-            time.sleep(.01)
-        if stop_all_thread:
-            return
+        if num_saved_frames <= detection_after_processing_n_frames and not stop_all_thread:
+            if stop_all_thread:
+                return
+            time.sleep(.1)
+        else:
+            detect_and_save_n_frames()
+            num_saved_frames -= detection_after_processing_n_frames
+
+    while num_saved_frames > detection_after_processing_n_frames:
         detect_and_save_n_frames()
-        num_saved_frames -= wait_for_n_frames
+        num_saved_frames -= detection_after_processing_n_frames
+
+    detect_and_save_n_frames()
 
 
 # this function detects movement in specified number of frames
@@ -162,7 +204,7 @@ def detect_and_save_n_frames():
 
     dir_list = sorted(os.listdir(frame_directory), key=len)
 
-    for i in range(wait_for_n_frames):
+    for i in range(min(len(dir_list), detection_after_processing_n_frames)):
         if stop_all_thread:
             return
         fgmask_dir = os.path.join(fgmask_directory, dir_list[i])
@@ -212,8 +254,11 @@ def show_frame_thread(self):
         if stop_all_thread:
             return
         time.sleep(1)
-    self.image_frame.place_forget()
-    self.webcam_frame.place_forget()
+    try:
+        self.image_frame.place_forget()
+        self.webcam_frame.place_forget()
+    except AttributeError:
+        pass
     self.video_frame.place(x=0, y=0, relheight=1, relwidth=1)
     show_frame(self, True)
 
@@ -268,6 +313,9 @@ def show_frame(self, is_next=True, num_frames=1):
 
     self.video_label['image'] = photo_list[self.frame_number]
     self.video_label.image = photo_list[self.frame_number]
+    show_num_frames_label(self)
+    threading.Thread(target=update_total_frames_thread, args=(self,)).start()
+    threading.Thread(target=unlock_skip_n_btn_thread, args=(self,)).start()
 
 
 # Accepts one parameter - to_check->Thread
@@ -371,7 +419,7 @@ def slideshow_thread(self):
         self.fast_btn['state'] = DISABLED
         self.slow_btn['state'] = DISABLED
         self.rabbit_btn['state'] = DISABLED
-        self.turtle['state'] = DISABLED
+        self.turtle_btn['state'] = DISABLED
         self.next_detection['state'] = DISABLED
         self.slideshow_btn['state'] = DISABLED
         slideshowThread = None

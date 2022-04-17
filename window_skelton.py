@@ -4,6 +4,7 @@ import classification_module
 import cv2
 import video_module
 import webcam_module
+# import detections_module
 import photo_module
 from gloval_vars import *
 
@@ -25,18 +26,17 @@ class WindowSkeleton(tk.Tk):
         # mid-frame to show video, photo or live webcam feed
         self.mid_frame = Frame(self, background='#7285DB', bd=4, highlightbackground='#49558C', highlightthickness=1)
         self.content_frame = Frame(self.mid_frame)
-
         # image frame to display images
+        # webcam frame to show webcam content
+        self.webcam_frame = Label(self.content_frame)
         self.image_frame = Label(self.content_frame)
-
-        # video frame to play videos
+        self.video_frame = Frame(self.content_frame)
         self.frame_number = -1
         self.delay = 600
-        self.video_frame = Frame(self.content_frame)
-
         # ------------- Frame navigation button Frame --------------
         frame_navigation_frame = Frame(self.video_frame)
-        self.revert5 = Button(frame_navigation_frame, default_button, text='-{}'.format(backtrack_frames), state=DISABLED,
+        self.revert5 = Button(frame_navigation_frame, default_button, text='-{}'.format(backtrack_frames),
+                              state=DISABLED,
                               bg='#F2435F', activebackground='white', activeforeground='#F2435F', foreground='white',
                               command=lambda: video_module.show_frame(self, False, backtrack_frames))
         self.previous_detection = Button(frame_navigation_frame, default_button, text='Previous', state=DISABLED,
@@ -49,11 +49,13 @@ class WindowSkeleton(tk.Tk):
         self.skip5 = Button(frame_navigation_frame, default_button, text='+{}'.format(skip_frames), bg='#F2435F',
                             activebackground='white', activeforeground='#F2435F', foreground='white',
                             command=lambda: video_module.show_frame(self, True, skip_frames))
+        self.num_frame_label = Label(frame_navigation_frame, font=button_font)
 
         self.revert5.pack(side=LEFT)
         self.previous_detection.pack(side=LEFT, padx=(5, 0))
         self.next_detection.pack(side=LEFT, padx=5)
         self.skip5.pack(side=LEFT)
+        self.num_frame_label.pack(side=RIGHT)
         frame_navigation_frame.pack(side=BOTTOM)
 
         # ------------ slideshow button Frame -------------------
@@ -84,17 +86,13 @@ class WindowSkeleton(tk.Tk):
         self.video_label = Label(self.video_frame)
         self.slideshow_label = Label(self.video_frame)
         self.video_label.pack(fill=Y)
-
-        # webcam frame to show webcam content
-        self.webcam_frame = Label(self.content_frame)
-
         self.content_frame.place(relheight=1, relwidth=1)
         self.mid_frame.grid(row=1, column=0, sticky='nsew')
 
         # bottom frame for the buttons
         self.bottom_frame = Frame(self, background=background_color)
         # button container for the photo, video, webcam feed
-        button_frame = Frame(self.bottom_frame, background='black')
+        button_frame = Frame(self.bottom_frame)
         self.photo_btn = Button(button_frame, default_button, text='Image', bg='#3BCC59', activeforeground='#3BCC59',
                                 command=lambda: photo_module.show_photo(self))
         self.photo_btn.grid(row=0, column=0, sticky='ew')
@@ -107,15 +105,26 @@ class WindowSkeleton(tk.Tk):
         # allowing the buttons to resize dynamically
         for col in range(3):
             button_frame.grid_columnconfigure(col, weight=1)
-        button_frame.place(relwidth=.8, relx=.1, rely=.2)
+        button_frame.pack(fill=BOTH, padx=10, pady=(20, 10))
         # Close button
-        self.close_btn = Button(self.bottom_frame, default_button, text='Close', bg='#71B9BD', activeforeground='#71B9BD',
-               command=lambda: video_module.stop_threads(self))
-        self.close_btn.pack(side=BOTTOM, pady=8)
+        bottom_btn_frame = Frame(self.bottom_frame)
+        self.close_btn = Button(bottom_btn_frame, default_button, text='Close', bg='#71B9BD',
+                                activeforeground='#71B9BD',
+                                command=lambda: video_module.stop_threads(self))
+        self.see_detections_btn = Button(bottom_btn_frame, default_button, text='View Detections', bg='#3169B3',
+                                         activeforeground='#3169B3', width=12)
+        '''self.see_detections_btn = Button(bottom_btn_frame, default_button, text='View Detections', bg='#3169B3',
+                                         activeforeground='#3169B3', width=12,
+                                         command=lambda: detections_module.view_detections(self))'''
+        self.close_btn.grid(row=0, column=1, sticky='ew')
+        self.see_detections_btn.grid(row=0, column=0, sticky='ew')
+        bottom_btn_frame.pack(fill=BOTH, padx=150, pady=10)
+        for col in range(2):
+            bottom_btn_frame.grid_columnconfigure(col, weight=1)
         self.bottom_frame.grid(row=2, column=0, sticky='nsew')
 
         # dynamic sizing of the three frames namely top, mid and bottom
         # self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=18)
-        self.grid_rowconfigure(2, weight=2)
+        self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
