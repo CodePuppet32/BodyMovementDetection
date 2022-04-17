@@ -28,38 +28,6 @@ counter = 0
 stop_all_thread = False
 
 
-def unlock_skip_n_btn_thread(self):
-    while save_sequence_thread.is_alive():
-        if len(photo_list) > skip_frames:
-            self.skip5['state'] = NORMAL
-            return
-        time.sleep(0.1)
-
-
-def update_total_frames_thread(self):
-    while save_sequence_thread.is_alive():
-        current_frame = self.frame_number + 1
-        total_frames = len(photo_list)
-
-        to_display = '{}/{}'.format(current_frame, total_frames)
-        self.num_frame_label['text'] = to_display
-        time.sleep(0.1)
-
-    current_frame = self.frame_number + 1
-    total_frames = len(photo_list)
-    to_display = '{}/{}'.format(current_frame, total_frames)
-    self.num_frame_label['text'] = to_display
-
-
-# thread for showing total detections and current detection number
-def show_num_frames_label(self):
-    current_frame = self.frame_number+1
-    total_frames = len(photo_list)
-
-    to_display = '{}/{}'.format(current_frame, total_frames)
-    self.num_frame_label['text'] = to_display
-
-
 # this is where thread will start its execution from checked
 def show_video(self):
     global photo_list
@@ -103,14 +71,14 @@ def show_video(self):
     first_frame = threading.Thread(target=show_frame_thread, args=(self,))
     first_frame.start()
     # progress bar thread
-    progress_bar_thread = threading.Thread(target=progress_bar_thread_func, args=(first_frame,self,))
+    progress_bar_thread = threading.Thread(target=progress_bar_thread_func, args=(first_frame, self))
     progress_bar_thread.start()
 
 
 # this functions reads video file frame after frame and starts a new thread (process_frame) for processing
 def save_frames(self, video_path):
     vid_capture = cv2.VideoCapture(video_path)
-
+    flag = True
     global frame_directory
     global fgmask_directory
     global stop_all_thread
@@ -123,6 +91,10 @@ def save_frames(self, video_path):
     while ret:
         if stop_all_thread:
             return
+        if flag and num_saved_frames > detection_after_processing_n_frames:
+            # to let detection_thread take over CPU for its setup
+            time.sleep(5)
+            flag = False
         frame_path = frame_directory + '\\' + str(vid_frame_counter) + '.jpg'
         fgmask_path = fgmask_directory + '\\' + str(vid_frame_counter) + '.jpg'
         threading.Thread(target=process_frame, args=(frame, frame_path, fgmask_path)).start()
@@ -293,29 +265,61 @@ def show_frame(self, is_next=True, num_frames=1):
         self.frame_number += num_frames
         self.previous_detection['state'] = NORMAL
         self.revert5['state'] = NORMAL
+        if self.frame_number + num_frames > len(photo_list) - 1:
+            self.skip5['state'] = DISABLED
+        if self.frame_number == len(photo_list) - 1:
+            self.slideshow_btn['state'] = DISABLED
+            self.next_detection['state'] = DISABLED
+            self.skip5['state'] = DISABLED
+
     else:
         self.frame_number -= num_frames
         self.next_detection['state'] = NORMAL
         self.skip5['state'] = NORMAL
         self.slideshow_btn['state'] = NORMAL
-
-    if self.frame_number == len(photo_list) - 1:
-        self.slideshow_btn['state'] = DISABLED
-        self.next_detection['state'] = DISABLED
-        self.skip5['state'] = DISABLED
-    if self.frame_number == 0:
-        self.previous_detection['state'] = DISABLED
-        self.revert5['state'] = DISABLED
-    if self.frame_number - backtrack_frames < 0:
-        self.revert5['state'] = DISABLED
-    if self.frame_number+skip_frames > len(photo_list)-1:
-        self.skip5['state'] = DISABLED
+        if self.frame_number - num_frames < 0:
+            self.revert5['state'] = DISABLED
+        if self.frame_number == 0:
+            self.previous_detection['state'] = DISABLED
+            self.revert5['state'] = DISABLED
 
     self.video_label['image'] = photo_list[self.frame_number]
     self.video_label.image = photo_list[self.frame_number]
     show_num_frames_label(self)
     threading.Thread(target=update_total_frames_thread, args=(self,)).start()
     threading.Thread(target=unlock_skip_n_btn_thread, args=(self,)).start()
+
+
+def unlock_skip_n_btn_thread(self):
+    while save_sequence_thread.is_alive():
+        if len(photo_list) > skip_frames:
+            self.skip5['state'] = NORMAL
+            return
+        time.sleep(0.1)
+
+
+def update_total_frames_thread(self):
+    while save_sequence_thread.is_alive():
+        current_frame = self.frame_number + 1
+        total_frames = len(photo_list)
+
+        to_display = '{}/{}'.format(current_frame, total_frames)
+        self.num_frame_label['text'] = to_display
+        time.sleep(0.1)
+
+    current_frame = self.frame_number + 1
+    total_frames = len(photo_list)
+    to_display = '{}/{}'.format(current_frame, total_frames)
+    self.num_frame_label['text'] = to_display
+
+
+# thread for showing total detections and current detection number
+def show_num_frames_label(self):
+    current_frame = self.frame_number + 1
+    total_frames = len(photo_list)
+
+    to_display = '{}/{}'.format(current_frame, total_frames)
+    self.num_frame_label['text'] = to_display
 
 
 # Accepts one parameter - to_check->Thread
