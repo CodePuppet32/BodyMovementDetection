@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import *
+from tkinter.ttk import Progressbar
 import classification_module
 import cv2
 import video_module
@@ -15,9 +16,9 @@ class WindowSkeleton(tk.Tk):
     def __init__(self):
         classification_module.save_detection(cv2.imread('resources\\default_image.png'), 'resources\\')
         super().__init__()
-        self.geometry('{}x{}'.format(700, 700))
-        self.resizable(True, False)
-        self.minsize(700, 700)
+        self.geometry('{}x{}'.format(700, 750))
+        self.resizable(True, True)
+        self.minsize(700, 750)
         self.title('Body Movement Detector')
 
         # default parameters
@@ -51,7 +52,7 @@ class WindowSkeleton(tk.Tk):
         self.delay = 600
         # ------------- Frame navigation button Frame --------------
         frame_navigation_frame = Frame(self.video_frame)
-        self.frames_detected_over_total_frames = Label(frame_navigation_frame, font=button_font, text='abc')
+        self.detection_over_total_bar = Progressbar(frame_navigation_frame)
         self.revert5 = Button(frame_navigation_frame, default_button, text='-{}'.format(self.backtrack_frames),
                               state=DISABLED,
                               bg='#F2435F', activebackground='white', activeforeground='#F2435F', foreground='white',
@@ -68,7 +69,7 @@ class WindowSkeleton(tk.Tk):
                             command=lambda: video_module.show_frame(self, True, self.skip_frames))
         self.num_frame_label = Label(frame_navigation_frame, font=button_font)
 
-        self.frames_detected_over_total_frames.pack(side=LEFT)
+        self.detection_over_total_bar.pack(side=LEFT, padx=(0, 5))
         self.revert5.pack(side=LEFT)
         self.previous_detection.pack(side=LEFT, padx=(5, 0))
         self.next_detection.pack(side=LEFT, padx=5)

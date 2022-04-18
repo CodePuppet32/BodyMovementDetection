@@ -17,14 +17,28 @@ photo_list = []
 detection_set = set()
 current_read_frames = 0
 num_saved_frames = 0
+detected_frames = 0
+vid_frame_counter = 0
 frame_directory = ''
 fgmask_directory = ''
 detection_directory = ''
 save_frame_thread = threading.Thread
 save_sequence_thread = threading.Thread
 slideshowThread = None
-counter = 0
 stop_all_thread = False
+counter = 0
+
+
+def show_detections_over_total_frames(self):
+    global vid_frame_counter
+    global detected_frames
+    try:
+        while 1:
+            self.detection_over_total_bar['maximum'] = vid_frame_counter
+            self.detection_over_total_bar['value'] = detected_frames
+            time.sleep(0.1)
+    except RuntimeError:
+        return
 
 
 # this is where thread will start its execution from checked
@@ -35,6 +49,10 @@ def show_video(self):
     global detection_directory
     global save_sequence_thread
     global save_frame_thread
+    global detected_frames
+    global vid_frame_counter
+    detected_frames = 0
+    vid_frame_counter = 0
 
     # to make sure we do not get frames of previous processed video
     # if we do not empty this list then we will get detected frames of previous video(s)
@@ -72,6 +90,7 @@ def show_video(self):
     # progress bar thread
     progress_bar_thread = threading.Thread(target=progress_bar_thread_func, args=(first_frame, self))
     progress_bar_thread.start()
+    threading.Thread(target=show_detections_over_total_frames, args=(self,)).start()
 
 
 # this functions reads video file frame after frame and starts a new thread (process_frame) for processing
@@ -81,6 +100,7 @@ def save_frames(self, video_path):
     global frame_directory
     global fgmask_directory
     global stop_all_thread
+    global vid_frame_counter
 
     create_directory(frame_directory)
     create_directory(fgmask_directory)
@@ -125,7 +145,7 @@ def process_frame(frame, frame_save_path, fgmask_save_path):
         cv2.imwrite(fgmask_save_path, fgmask)
         cv2.imwrite(frame_save_path, frame)
         num_saved_frames += 1
-    except AttributeError:
+    except AttributeError or cv2.error:
         return
 
 
@@ -173,12 +193,14 @@ def detect_and_save_n_frames(self):
     global fgmask_directory
     global frame_directory
     global stop_all_thread
+    global detected_frames
     idx = []
     C = []
 
     dir_list = sorted(os.listdir(frame_directory), key=len)
 
     for i in range(min(len(dir_list), self.detection_after_processing_n_frames)):
+        detected_frames += 1
         if stop_all_thread:
             return
         fgmask_dir = os.path.join(fgmask_directory, dir_list[i])
@@ -415,6 +437,7 @@ def slideshow_thread(self):
     global stop_all_thread
 
     while self.frame_number < num_photos:
+        show_num_frames_label(self)
         if stop_all_thread:
             return
         self.slideshow_label['image'] = photo_list[self.frame_number]
