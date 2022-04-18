@@ -10,7 +10,6 @@ from PIL import Image
 import classification_module
 from helper_functions import *
 from tkinter import messagebox
-from gloval_vars import *
 
 stop_slideshow = False
 fgModel = cv2.createBackgroundSubtractorMOG2()
@@ -65,7 +64,7 @@ def show_video(self):
     save_frame_thread = threading.Thread(target=save_frames, args=(self, video_path))
     save_frame_thread.start()
     # thread to send processed frames to the ImageAI for detection
-    save_sequence_thread = threading.Thread(target=detect_and_save_frames_helper, args=())
+    save_sequence_thread = threading.Thread(target=detect_and_save_frames_helper, args=(self,))
     save_sequence_thread.start()
     # thread to show the detected frames
     first_frame = threading.Thread(target=show_frame_thread, args=(self,))
@@ -91,7 +90,7 @@ def save_frames(self, video_path):
     while ret:
         if stop_all_thread:
             return
-        if flag and num_saved_frames > detection_after_processing_n_frames:
+        if flag and num_saved_frames > self.detection_after_processing_n_frames:
             # to let detection_thread take over CPU for its setup
             time.sleep(5)
             flag = False
@@ -101,7 +100,7 @@ def save_frames(self, video_path):
         vid_frame_counter += 1
         # to read every 4th frame
         skip_counter = 1
-        while skip_counter != read_nth_frame_video:
+        while skip_counter != self.read_nth_frame_video:
             skip_counter += 1
             vid_capture.read()
         ret, frame = vid_capture.read()
@@ -114,17 +113,20 @@ def save_frames(self, video_path):
 
 # this functions takes in a frame, processes the frame and saved the frame and masked image in local storage
 def process_frame(frame, frame_save_path, fgmask_save_path):
-    global num_saved_frames
-    frame = cv2.resize(frame, dsize=(600, 400))
-    # foreground mask
-    fgmask = fgModel.apply(frame)
-    k_r = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-    fgmask = cv2.morphologyEx(np.float32(fgmask), cv2.MORPH_OPEN, k_r)
-    _, label_image = cv2.connectedComponents(np.array(fgmask > 0, np.uint8))
-    fgmask = keep_large_components(label_image, 800)
-    cv2.imwrite(fgmask_save_path, fgmask)
-    cv2.imwrite(frame_save_path, frame)
-    num_saved_frames += 1
+    try:
+        global num_saved_frames
+        frame = cv2.resize(frame, dsize=(600, 400))
+        # foreground mask
+        fgmask = fgModel.apply(frame)
+        k_r = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        fgmask = cv2.morphologyEx(np.float32(fgmask), cv2.MORPH_OPEN, k_r)
+        _, label_image = cv2.connectedComponents(np.array(fgmask > 0, np.uint8))
+        fgmask = keep_large_components(label_image, 800)
+        cv2.imwrite(fgmask_save_path, fgmask)
+        cv2.imwrite(frame_save_path, frame)
+        num_saved_frames += 1
+    except AttributeError:
+        return
 
 
 # this functions removes noise from the masked image
@@ -144,29 +146,29 @@ def keep_large_components(image, th):
 
 # This function check whether enough frames have been processed, masked and saved in local storage
 # If specified number of frames have been saved it will call
-def detect_and_save_frames_helper():
+def detect_and_save_frames_helper(self):
     global save_frame_thread
     global num_saved_frames
     global stop_all_thread
 
     while save_frame_thread.is_alive():
-        if num_saved_frames <= detection_after_processing_n_frames and not stop_all_thread:
+        if num_saved_frames <= self.detection_after_processing_n_frames and not stop_all_thread:
             if stop_all_thread:
                 return
             time.sleep(.1)
         else:
-            detect_and_save_n_frames()
-            num_saved_frames -= detection_after_processing_n_frames
+            detect_and_save_n_frames(self)
+            num_saved_frames -= self.detection_after_processing_n_frames
 
-    while num_saved_frames > detection_after_processing_n_frames:
-        detect_and_save_n_frames()
-        num_saved_frames -= detection_after_processing_n_frames
+    while num_saved_frames > self.detection_after_processing_n_frames:
+        detect_and_save_n_frames(self)
+        num_saved_frames -= self.detection_after_processing_n_frames
 
-    detect_and_save_n_frames()
+    detect_and_save_n_frames(self)
 
 
 # this function detects movement in specified number of frames
-def detect_and_save_n_frames():
+def detect_and_save_n_frames(self):
     global counter
     global fgmask_directory
     global frame_directory
@@ -176,7 +178,7 @@ def detect_and_save_n_frames():
 
     dir_list = sorted(os.listdir(frame_directory), key=len)
 
-    for i in range(min(len(dir_list), detection_after_processing_n_frames)):
+    for i in range(min(len(dir_list), self.detection_after_processing_n_frames)):
         if stop_all_thread:
             return
         fgmask_dir = os.path.join(fgmask_directory, dir_list[i])
@@ -222,7 +224,7 @@ def save_sequence(c, frame_counter, output_path):
 def show_frame_thread(self):
     global stop_all_thread
     global photo_list
-    while len(photo_list) < num_detections_before_presented:
+    while len(photo_list) < self.num_detections_before_presented:
         if stop_all_thread:
             return
         time.sleep(1)
@@ -245,67 +247,74 @@ def show_frame(self, is_next=True, num_frames=1):
     global stop_all_thread
     if stop_all_thread:
         return
+    try:
+        # user clicked next or previous button while slideshow was being shown
+        if slideshowThread is not None:
+            frame_number = self.frame_number
+            stop_slideshow = True
+            time.sleep(0.1)
+            self.frame_number = frame_number
+            slideshowThread = None
+            self.slideshow_label.pack_forget()
+            self.video_label.pack()
+            self.slideshow_btn.config(text='Slideshow')
+            self.fast_btn['state'] = DISABLED
+            self.turtle_btn['state'] = DISABLED
+            self.slow_btn['state'] = DISABLED
+            self.rabbit_btn['state'] = DISABLED
 
-    # user clicked next or previous button while slideshow was being shown
-    if slideshowThread is not None:
-        frame_number = self.frame_number
-        stop_slideshow = True
-        time.sleep(0.1)
-        self.frame_number = frame_number
-        slideshowThread = None
-        self.slideshow_label.pack_forget()
-        self.video_label.pack()
-        self.slideshow_btn.config(text='Slideshow')
-        self.fast_btn['state'] = DISABLED
-        self.turtle_btn['state'] = DISABLED
-        self.slow_btn['state'] = DISABLED
-        self.rabbit_btn['state'] = DISABLED
+        if is_next is True:
+            self.frame_number += num_frames
+            self.previous_detection['state'] = NORMAL
+            self.revert5['state'] = NORMAL
+        else:
+            self.frame_number -= num_frames
+            self.next_detection['state'] = NORMAL
+            self.skip5['state'] = NORMAL
+            self.slideshow_btn['state'] = NORMAL
 
-    if is_next is True:
-        self.frame_number += num_frames
-        self.previous_detection['state'] = NORMAL
-        self.revert5['state'] = NORMAL
-        if self.frame_number + num_frames > len(photo_list) - 1:
+        if (len(photo_list)-self.skip_frames) < self.frame_number:
             self.skip5['state'] = DISABLED
         if self.frame_number == len(photo_list) - 1:
             self.slideshow_btn['state'] = DISABLED
             self.next_detection['state'] = DISABLED
-            self.skip5['state'] = DISABLED
-
-    else:
-        self.frame_number -= num_frames
-        self.next_detection['state'] = NORMAL
-        self.skip5['state'] = NORMAL
-        self.slideshow_btn['state'] = NORMAL
-        if self.frame_number - num_frames < 0:
+        if self.frame_number - self.backtrack_frames < 0:
             self.revert5['state'] = DISABLED
         if self.frame_number == 0:
             self.previous_detection['state'] = DISABLED
-            self.revert5['state'] = DISABLED
 
-    self.video_label['image'] = photo_list[self.frame_number]
-    self.video_label.image = photo_list[self.frame_number]
-    show_num_frames_label(self)
-    threading.Thread(target=update_total_frames_thread, args=(self,)).start()
-    threading.Thread(target=unlock_skip_n_btn_thread, args=(self,)).start()
+        self.video_label['image'] = photo_list[self.frame_number]
+        self.video_label.image = photo_list[self.frame_number]
+        show_num_frames_label(self)
+        threading.Thread(target=update_total_frames_thread, args=(self,)).start()
+        threading.Thread(target=unlock_skip_n_btn_thread, args=(self,)).start()
+    except AttributeError:
+        return
 
 
 def unlock_skip_n_btn_thread(self):
     while save_sequence_thread.is_alive():
-        if len(photo_list) > skip_frames:
-            self.skip5['state'] = NORMAL
+        try:
+            if len(photo_list)-self.frame_number > self.skip_frames:
+                self.next_detection['state'] = NORMAL
+                self.skip5['state'] = NORMAL
+                return
+            time.sleep(0.1)
+        except RuntimeError:
             return
-        time.sleep(0.1)
 
 
 def update_total_frames_thread(self):
     while save_sequence_thread.is_alive():
-        current_frame = self.frame_number + 1
-        total_frames = len(photo_list)
+        try:
+            current_frame = self.frame_number + 1
+            total_frames = len(photo_list)
 
-        to_display = '{}/{}'.format(current_frame, total_frames)
-        self.num_frame_label['text'] = to_display
-        time.sleep(0.1)
+            to_display = '{}/{}'.format(current_frame, total_frames)
+            self.num_frame_label['text'] = to_display
+            time.sleep(0.1)
+        except RuntimeError:
+            return
 
     current_frame = self.frame_number + 1
     total_frames = len(photo_list)
@@ -348,7 +357,7 @@ def progress_bar_thread_func(to_check, self):
                 if stop_all_thread:
                     return
                 progress['value'] = processing_text_counter % 100
-                time.sleep(progress_bar_speed)
+                time.sleep(self.progress_bar_speed)
                 processing_text_counter += 2
             progress['value'] = 100
             processing_text['text'] = 'Almost Done'
@@ -460,7 +469,7 @@ def faster(self):
         return
     self.slow_btn['state'] = NORMAL
     self.turtle_btn['state'] = NORMAL
-    if self.delay > lowest_slideshow_delay:
+    if self.delay > self.lowest_slideshow_delay:
         self.delay -= 50
     else:
         self.fast_btn['state'] = DISABLED
@@ -473,7 +482,7 @@ def slower(self):
         return
     self.fast_btn['state'] = NORMAL
     self.rabbit_btn['state'] = NORMAL
-    if self.delay < highest_slideshow_delay:
+    if self.delay < self.highest_slideshow_delay:
         self.delay += 50
     else:
         self.slow_btn['state'] = DISABLED
@@ -486,7 +495,7 @@ def slowest(self):
         return
     self.fast_btn['state'] = NORMAL
     self.rabbit_btn['state'] = NORMAL
-    self.delay = highest_slideshow_delay
+    self.delay = self.highest_slideshow_delay
     self.slow_btn['state'] = DISABLED
     self.turtle_btn['state'] = DISABLED
 
@@ -497,7 +506,7 @@ def fastest(self):
         return
     self.slow_btn['state'] = NORMAL
     self.turtle_btn['state'] = NORMAL
-    self.delay = lowest_slideshow_delay
+    self.delay = self.lowest_slideshow_delay
     self.fast_btn['state'] = DISABLED
     self.rabbit_btn['state'] = DISABLED
 

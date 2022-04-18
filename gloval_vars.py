@@ -1,8 +1,8 @@
 button_font = ('Consolas', 13, 'bold')
 heading_text_font = ('Consolas', 18)
 heading_text_font_bold = ('Ubuntu ', 18, 'bold')
-default_text_font = ('Courier ', 10)
-default_text_font_bold = ('Courier ', 10, 'bold')
+default_text_font = ('Arial ', 12)
+default_text_font_bold = ('Arial ', 12, 'bold')
 background_color = '#FF9DDA'
 background_highlight_color = '#CC704B'
 
@@ -12,7 +12,7 @@ default_button = {'activebackground': 'gray26', 'bg': 'RoyalBlue3', 'relief': 'g
 list_button = {'activebackground': 'black', 'bg': '#628B9C', 'relief': 'groove', 'activeforeground': '#628B9C',
                'fg': 'black', 'bd': 1}
 
-# ---- CAUTION ----
+'''# ---- CAUTION ----
 # combination of high read_nth_frame_video and low wait_for_n_frames will defy the objective of this project
 
 # how many number of frames of video are to be skipped
@@ -43,4 +43,4 @@ backtrack_frames = 10
 skip_frames = 10
 
 # lower is faster
-progress_bar_speed = 0.1
+progress_bar_speed = 0.1'''

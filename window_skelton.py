@@ -4,6 +4,8 @@ import classification_module
 import cv2
 import video_module
 import webcam_module
+import default_parameter_module
+import system_usage_module
 # import detections_module
 import photo_module
 from gloval_vars import *
@@ -13,12 +15,26 @@ class WindowSkeleton(tk.Tk):
     def __init__(self):
         classification_module.save_detection(cv2.imread('resources\\default_image.png'), 'resources\\')
         super().__init__()
-        self.geometry('{}x{}'.format(600, 642))
+        self.geometry('{}x{}'.format(700, 700))
         self.resizable(True, False)
-        self.minsize(600, 642)
+        self.minsize(700, 700)
         self.title('Body Movement Detector')
+
+        # default parameters
+        self.read_nth_frame_video = 12
+        self.detection_after_processing_n_frames = 50
+        self.detection_speed = 'flash'
+        self.num_detections_before_presented = 5
+        self.default_slideshow_delay = 600
+        self.highest_slideshow_delay = 900
+        self.lowest_slideshow_delay = 300
+        self.backtrack_frames = 10
+        self.skip_frames = 10
+        self.progress_bar_speed = 0.1
+
         # top frame for the labels
         self.top_frame = Frame(self, background=background_color)
+        system_usage_module.show_usage(self)
         Label(self.top_frame, text="CHOOSE FROM FOLLOWING", font=heading_text_font,
               fg='gray16', background=background_color, bd=2).pack(pady=10)
         self.top_frame.grid(row=0, column=0, sticky='nsew')
@@ -35,10 +51,11 @@ class WindowSkeleton(tk.Tk):
         self.delay = 600
         # ------------- Frame navigation button Frame --------------
         frame_navigation_frame = Frame(self.video_frame)
-        self.revert5 = Button(frame_navigation_frame, default_button, text='-{}'.format(backtrack_frames),
+        self.frames_detected_over_total_frames = Label(frame_navigation_frame, font=button_font, text='abc')
+        self.revert5 = Button(frame_navigation_frame, default_button, text='-{}'.format(self.backtrack_frames),
                               state=DISABLED,
                               bg='#F2435F', activebackground='white', activeforeground='#F2435F', foreground='white',
-                              command=lambda: video_module.show_frame(self, False, backtrack_frames))
+                              command=lambda: video_module.show_frame(self, False, self.backtrack_frames))
         self.previous_detection = Button(frame_navigation_frame, default_button, text='Previous', state=DISABLED,
                                          bg='#F2435F',
                                          activebackground='white', activeforeground='#F2435F', foreground='white',
@@ -46,11 +63,12 @@ class WindowSkeleton(tk.Tk):
         self.next_detection = Button(frame_navigation_frame, default_button, text='Next', bg='#F2435F',
                                      activebackground='white', activeforeground='#F2435F', foreground='white',
                                      command=lambda: video_module.show_frame(self, True))
-        self.skip5 = Button(frame_navigation_frame, default_button, text='+{}'.format(skip_frames), bg='#F2435F',
+        self.skip5 = Button(frame_navigation_frame, default_button, text='+{}'.format(self.skip_frames), bg='#F2435F',
                             activebackground='white', activeforeground='#F2435F', foreground='white',
-                            command=lambda: video_module.show_frame(self, True, skip_frames))
+                            command=lambda: video_module.show_frame(self, True, self.skip_frames))
         self.num_frame_label = Label(frame_navigation_frame, font=button_font)
 
+        self.frames_detected_over_total_frames.pack(side=LEFT)
         self.revert5.pack(side=LEFT)
         self.previous_detection.pack(side=LEFT, padx=(5, 0))
         self.next_detection.pack(side=LEFT, padx=5)
@@ -113,13 +131,14 @@ class WindowSkeleton(tk.Tk):
                                 command=lambda: video_module.stop_threads(self))
         self.see_detections_btn = Button(bottom_btn_frame, default_button, text='View Detections', bg='#3169B3',
                                          activeforeground='#3169B3', width=12)
-        '''self.see_detections_btn = Button(bottom_btn_frame, default_button, text='View Detections', bg='#3169B3',
-                                         activeforeground='#3169B3', width=12,
-                                         command=lambda: detections_module.view_detections(self))'''
+        self.change_def_parameters = Button(bottom_btn_frame, default_button, text='Default Parameters',
+                                            bg='#3169B3', activeforeground='#3169B3', width=12,
+                                            command=lambda: default_parameter_module.set_default_vars(self))
         self.close_btn.grid(row=0, column=1, sticky='ew')
         self.see_detections_btn.grid(row=0, column=0, sticky='ew')
-        bottom_btn_frame.pack(fill=BOTH, padx=150, pady=10)
-        for col in range(2):
+        self.change_def_parameters.grid(row=0, column=2, sticky='ew')
+        bottom_btn_frame.pack(fill=BOTH, padx=10, pady=10)
+        for col in range(3):
             bottom_btn_frame.grid_columnconfigure(col, weight=1)
         self.bottom_frame.grid(row=2, column=0, sticky='nsew')
 
