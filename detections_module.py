@@ -45,6 +45,10 @@ def show_image(path):
 def see_photos():
     global image_label
     detection_directory = 'detections\\photos\\'
+
+    if not os.path.exists(detection_directory):
+        return
+
     image_list = []
     for image in os.listdir(detection_directory):
         image_list.append(image)
@@ -58,7 +62,7 @@ def see_photos():
     scroll_y = Scrollbar(parent, orient='vertical', command=canvas.yview)
 
     image_list_frame = Frame(canvas, background='black')
-    image_label = Label(parent)
+    image_label = Label(parent, background='black')
 
     for image in image_list:
         Button(image_list_frame, list_button, text=image, command=lambda: show_image(os.path.join(detection_directory, image)))\
@@ -76,15 +80,19 @@ def see_photos():
 
 def see_videos():
     detection_directory = 'detections\\videos\\'
+    if not os.path.exists(detection_directory):
+        return
     global detection_folder_btn_frame
     global close_btn
     detection_folder_btn_frame.pack_forget()
     close_btn['text'] = 'back'
-    close_btn['command'] = lambda: view_detections(1)
+    close_btn['command'] = lambda: view_detections(1)   
 
 
 def see_webcam():
     detection_directory = 'detections\\webcam\\'
+    if not os.path.exists(detection_directory):
+        return
     global detection_folder_btn_frame
     global close_btn
     detection_folder_btn_frame.pack_forget()
@@ -105,13 +113,13 @@ def view_detections(self):
     num_detected_images_label = Label(detection_folder_btn_frame, font=default_text_font
                                       , text=get_num_detections_photos(), background=background)
     video_detection_btn = Button(detection_folder_btn_frame, default_button, text='Videos', background='#F7BA89',
-                                 activeforeground='#F7BA89', command=see_photos)
+                                 activeforeground='#F7BA89', command=see_videos)
     num_detected_videos_label = Label(detection_folder_btn_frame, font=default_text_font
                                       , text=get_num_detections_videos(), background=background)
     webcam_detection_btn = Button(detection_folder_btn_frame, default_button, text='Webcam', background='#AB98F7',
-                                  activeforeground='#AB98F7', command=see_photos)
-    num_detected_webcam_label = Label(detection_folder_btn_frame, font=default_text_font
-                                      , text=get_num_detections_webcam(), background=background)
+                                  activeforeground='#AB98F7', command=see_webcam)
+    num_detected_webcam_label = Label(detection_folder_btn_frame, font=default_text_font,
+                                      text=get_num_detections_webcam(), background=background)
 
     video_detection_btn.grid(row=1, column=0, sticky='ew')
     image_detection_btn.grid(row=0, column=0, sticky='ew')
