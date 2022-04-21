@@ -3,18 +3,19 @@ import time
 import psutil
 from tkinter.ttk import Progressbar
 from tkinter import *
+from gloval_vars import heading_text_font
 
 
 def show_usage(self):
     threading.Thread(target=show_system_usage, args=(self,)).start()
-    system_usage_frame = Frame(self.top_frame)
-    Label(system_usage_frame, text='CPU').grid(row=0, column=0)
-    Label(system_usage_frame, text='MEM').grid(row=0, column=1)
-    self.progress_bar_one = Progressbar(system_usage_frame, maximum=100, orient='vertical')
-    self.progress_bar_two = Progressbar(system_usage_frame, maximum=100, orient='vertical')
-    self.progress_bar_two.grid(row=1, column=1)
-    self.progress_bar_one.grid(row=1, column=0)
-    system_usage_frame.pack(side=LEFT)
+    self.mem_label = Label(self.top_frame, font=heading_text_font, text='MEMORY', background=self.background_color)
+    self.mem_label.place(x=0, rely=0.5)
+    self.cpu_label = Label(self.top_frame, font=heading_text_font, text='CPU', background=self.background_color)
+    self.cpu_label.place(relx=1, rely=0.5, anchor=NE)
+    self.progress_bar_one = Progressbar(self.top_frame, maximum=100, orient='horizontal')
+    self.progress_bar_two = Progressbar(self.top_frame, maximum=100, orient='horizontal')
+    self.progress_bar_two.place(x=0, y=10)
+    self.progress_bar_one.place(relx=1, y=10, anchor=NE)
     threading.Thread(target=show_system_usage, args=(self,)).start()
 
 

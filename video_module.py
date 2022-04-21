@@ -54,17 +54,17 @@ def show_video(self):
     detected_frames = 0
     vid_frame_counter = 0
 
-    # to make sure we do not get frames of previous processed video
-    # if we do not empty this list then we will get detected frames of previous video(s)
-    photo_list = []
-    self.frame_number = -1
-
     # path to the video
     # it can be empty, so we need to check
     video_path = get_video_path()
     if video_path == '':
         messagebox.showerror('Empty Path', 'Path to video cannot be empty')
         return
+
+    # to make sure we do not get frames of previous processed video
+    # if we do not empty this list then we will get detected frames of previous video(s)
+    photo_list = []
+    self.frame_number = -1
 
     vid_name = video_path.split('\\')[-1]
     frame_directory = 'savedFrames\\frames\\' + vid_name
@@ -135,7 +135,7 @@ def save_frames(self, video_path):
 def process_frame(frame, frame_save_path, fgmask_save_path):
     try:
         global num_saved_frames
-        frame = cv2.resize(frame, dsize=(600, 400))
+        frame = cv2.resize(frame, dsize=(600, 490))
         # foreground mask
         fgmask = fgModel.apply(frame)
         k_r = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
@@ -212,7 +212,7 @@ def detect_and_save_n_frames(self):
             C.append(frame)
 
         if len(idx) >= 2 and idx[-1] > idx[-2] + 1:
-            save_sequence(C, idx[0], detection_directory)
+            save_sequence(self.minimum_probability, C, idx[0], detection_directory)
             idx = []
             C = []
 
@@ -220,11 +220,11 @@ def detect_and_save_n_frames(self):
         os.remove(fgmask_dir)
         os.remove(frame_dir)
     if len(idx) >= 2:
-        save_sequence(C, len(idx), detection_directory)
+        save_sequence(self.minimum_probability, C, len(idx), detection_directory)
 
 
 # this functions detects the objects in frame where movement was observed and saves in local storage
-def save_sequence(c, frame_counter, output_path):
+def save_sequence(min_prob, c, frame_counter, output_path):
     global photo_list
     global stop_all_thread
     k = 1
@@ -234,7 +234,7 @@ def save_sequence(c, frame_counter, output_path):
                 return
             imName = str(frame_counter) + '_' + str(k)
             finalPath = os.path.join(output_path, imName)
-            classification_module.save_detection(frame, finalPath)
+            classification_module.save_detection(min_prob, frame, finalPath)
             photo_list.append(ImageTk.PhotoImage(Image.fromarray(frame[:, :, ::-1])))
             k += 1
     finally:

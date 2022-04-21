@@ -3,10 +3,9 @@ heading_text_font = ('Consolas', 18)
 heading_text_font_bold = ('Ubuntu ', 18, 'bold')
 default_text_font = ('Arial ', 12)
 default_text_font_bold = ('Arial ', 12, 'bold')
-background_color = '#FF9DDA'
 background_highlight_color = '#CC704B'
 
-default_button = {'activebackground': 'gray26', 'bg': 'RoyalBlue3', 'relief': 'groove',
+default_button = {'activebackground': 'gray26', 'bg': 'RoyalBlue3', 'relief': 'groove', 'width': '10',
                   'fg': 'gray26', 'font': button_font, 'bd': 2}
 
 list_button = {'activebackground': 'black', 'bg': '#628B9C', 'relief': 'groove', 'activeforeground': '#628B9C',

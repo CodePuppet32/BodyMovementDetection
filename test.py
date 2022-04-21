@@ -36,7 +36,7 @@ btn_frame = Frame(my_canvas)
 my_canvas.create_window((0, 0), window=btn_frame, anchor=NW)
 
 for i, image in enumerate(image_list):
-    Button(btn_frame, default_button, text=image, command=lambda img=image: image_btn_(os.path.join(photo_directory, img)))\
+    Button(btn_frame, default_button, width=24, text=image, command=lambda img=image: image_btn_(os.path.join(photo_directory, img)))\
         .grid(row=i, column=0, pady=5)
 
 

@@ -32,7 +32,7 @@ def start_webcam_feed(self):
     webcam_feed_save_path = 'DetectedImage\\webcam\\image'
     while 1:
         _, frame = self.vid.read()
-        classification_module.save_detection(frame, webcam_feed_save_path+str(counter))
+        classification_module.save_detection(self.minimum_probability, frame, webcam_feed_save_path+str(counter))
         image = ImageTk.PhotoImage(Image.fromarray(frame[:, :, ::-1]))
         self.webcam_frame['image'] = image
         self.webcam_frame.image = image

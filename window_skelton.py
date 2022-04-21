@@ -7,6 +7,7 @@ import video_module
 import webcam_module
 import default_parameter_module
 import system_usage_module
+from tkinter import colorchooser
 # import detections_module
 import photo_module
 from gloval_vars import *
@@ -14,14 +15,15 @@ from gloval_vars import *
 
 class WindowSkeleton(tk.Tk):
     def __init__(self):
-        classification_module.save_detection(cv2.imread('resources\\default_image.png'), 'resources\\')
+        classification_module.save_detection(60, cv2.imread('resources\\default_image.png'), 'resources\\')
         super().__init__()
-        self.geometry('{}x{}'.format(700, 750))
+        self.geometry('{}x{}'.format(700, 800))
         self.resizable(True, True)
         self.minsize(700, 750)
         self.title('Body Movement Detector')
 
         # default parameters
+        self.minimum_probability = 60
         self.read_nth_frame_video = 12
         self.detection_after_processing_n_frames = 50
         self.detection_speed = 'flash'
@@ -32,12 +34,17 @@ class WindowSkeleton(tk.Tk):
         self.backtrack_frames = 10
         self.skip_frames = 10
         self.progress_bar_speed = 0.1
+        self.background_color = '#E0A744'
 
         # top frame for the labels
-        self.top_frame = Frame(self, background=background_color)
+        self.top_frame = Frame(self, background=self.background_color)
+        self.select_color_btn = Button(self.top_frame, default_button, text="Select theme", width=12,
+                                       background=self.background_color, command=lambda: choose_color(self))
+        self.select_color_btn.place(y=14, relx=.5, anchor=CENTER)
         system_usage_module.show_usage(self)
-        Label(self.top_frame, text="CHOOSE FROM FOLLOWING", font=heading_text_font,
-              fg='gray16', background=background_color, bd=2).pack(pady=10)
+        self.top_label = Label(self.top_frame, text="CHOOSE FROM FOLLOWING", font=heading_text_font,
+                               fg='gray16', background=self.background_color, bd=2)
+        self.top_label.place(relx=.5, rely=.6, anchor=CENTER)
         self.top_frame.grid(row=0, column=0, sticky='nsew')
 
         # mid-frame to show video, photo or live webcam feed
@@ -109,7 +116,7 @@ class WindowSkeleton(tk.Tk):
         self.mid_frame.grid(row=1, column=0, sticky='nsew')
 
         # bottom frame for the buttons
-        self.bottom_frame = Frame(self, background=background_color)
+        self.bottom_frame = Frame(self, background=self.background_color)
         # button container for the photo, video, webcam feed
         button_frame = Frame(self.bottom_frame)
         self.photo_btn = Button(button_frame, default_button, text='Image', bg='#3BCC59', activeforeground='#3BCC59',
@@ -127,18 +134,18 @@ class WindowSkeleton(tk.Tk):
         button_frame.pack(fill=BOTH, padx=10, pady=(20, 10))
         # Close button
         bottom_btn_frame = Frame(self.bottom_frame)
-        self.close_btn = Button(bottom_btn_frame, default_button, text='Close', bg='#71B9BD',
-                                activeforeground='#71B9BD',
+        self.close_btn = Button(bottom_btn_frame, default_button, text='Close', bg='#F75757',
+                                activeforeground='#F75757',
                                 command=lambda: video_module.stop_threads(self))
-        self.see_detections_btn = Button(bottom_btn_frame, default_button, text='View Detections', bg='#3169B3',
-                                         activeforeground='#3169B3', width=12)
+        self.see_detections_btn = Button(bottom_btn_frame, default_button, text='View Detections', bg='#26E3F7',
+                                         activeforeground='#26E3F7')
         self.change_def_parameters = Button(bottom_btn_frame, default_button, text='Default Parameters',
-                                            bg='#3169B3', activeforeground='#3169B3', width=12,
+                                            bg='#B18BD6', activeforeground='#B18BD6',
                                             command=lambda: default_parameter_module.set_default_vars(self))
         self.close_btn.grid(row=0, column=1, sticky='ew')
         self.see_detections_btn.grid(row=0, column=0, sticky='ew')
         self.change_def_parameters.grid(row=0, column=2, sticky='ew')
-        bottom_btn_frame.pack(fill=BOTH, padx=10, pady=10)
+        bottom_btn_frame.pack(fill=BOTH, padx=10, pady=(10, 0))
         for col in range(3):
             bottom_btn_frame.grid_columnconfigure(col, weight=1)
         self.bottom_frame.grid(row=2, column=0, sticky='nsew')
@@ -147,4 +154,16 @@ class WindowSkeleton(tk.Tk):
         # self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=18)
         self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(0, weight=3)
         self.grid_columnconfigure(0, weight=1)
+
+
+def choose_color(self):
+    color_code = colorchooser.askcolor(title='Choose color')
+    self.top_frame['background'] = color_code[1]
+    self.bottom_frame['background'] = color_code[1]
+    self.top_label['background'] = color_code[1]
+    self.mem_label['background'] = color_code[1]
+    self.cpu_label['background'] = color_code[1]
+    self.background_color = color_code[1]
+    self.select_color_btn['background'] = color_code[1]

@@ -33,7 +33,7 @@ def show_photo_thread(self, image_path):
     detection_directory = 'detections\\photos\\'
     create_directory(detection_directory)
 
-    classification_module.save_detection(image, detection_directory + img_name)
+    classification_module.save_detection(self.minimum_probability, image, detection_directory + img_name)
     image = ImageTk.PhotoImage(Image.fromarray(image[:, :, ::-1]))
 
     self.image_frame['image'] = image
