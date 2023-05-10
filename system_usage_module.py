@@ -9,13 +9,13 @@ from gloval_vars import heading_text_font
 def show_usage(self):
     threading.Thread(target=show_system_usage, args=(self,)).start()
     self.mem_label = Label(self.top_frame, font=heading_text_font, text='MEMORY', background=self.background_color)
-    self.mem_label.place(x=0, rely=0.5)
+    self.mem_label.place(relx=.05, rely=0.4)
     self.cpu_label = Label(self.top_frame, font=heading_text_font, text='CPU', background=self.background_color)
-    self.cpu_label.place(relx=1, rely=0.5, anchor=NE)
+    self.cpu_label.place(relx=.95, rely=0.4, anchor=NE)
     self.progress_bar_one = Progressbar(self.top_frame, maximum=100, orient='horizontal')
     self.progress_bar_two = Progressbar(self.top_frame, maximum=100, orient='horizontal')
-    self.progress_bar_two.place(x=0, y=10)
-    self.progress_bar_one.place(relx=1, y=10, anchor=NE)
+    self.progress_bar_two.place(relx=.05, y=10)
+    self.progress_bar_one.place(relx=.95, y=10, anchor=NE)
     threading.Thread(target=show_system_usage, args=(self,)).start()
 
 

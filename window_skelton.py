@@ -11,11 +11,15 @@ from tkinter import colorchooser
 # import detections_module
 import photo_module
 from gloval_vars import *
-
+import os
 
 class WindowSkeleton(tk.Tk):
     def __init__(self):
-        classification_module.save_detection(60, cv2.imread('resources\\default_image.png'), 'resources\\')
+        file_path = os.path.realpath(__file__)
+        file_path = os.path.dirname(file_path)
+        resources_path = os.path.join(file_path, 'resources')
+        classification_module.save_detection(60, cv2.imread(os.path.join(resources_path, 'default_image.png')),
+                                             resources_path)
         super().__init__()
         self.geometry('{}x{}'.format(700, 800))
         self.resizable(True, True)
@@ -26,7 +30,7 @@ class WindowSkeleton(tk.Tk):
         self.minimum_probability = 60
         self.read_nth_frame_video = 12
         self.detection_after_processing_n_frames = 50
-        self.detection_speed = 'flash'
+        self.detection_speed = 'normal'
         self.num_detections_before_presented = 5
         self.default_slideshow_delay = 600
         self.highest_slideshow_delay = 900
@@ -68,6 +72,9 @@ class WindowSkeleton(tk.Tk):
                                          bg='#F2435F',
                                          activebackground='white', activeforeground='#F2435F', foreground='white',
                                          command=lambda: video_module.show_frame(self, False))
+        self.pause_detection = Button(frame_navigation_frame, default_button, text='Pause', bg='#F2435F',
+                                     activebackground='white', activeforeground='#F2435F', foreground='white',
+                                     command=lambda: video_module.toggle_detection(self))
         self.next_detection = Button(frame_navigation_frame, default_button, text='Next', bg='#F2435F',
                                      activebackground='white', activeforeground='#F2435F', foreground='white',
                                      command=lambda: video_module.show_frame(self, True))
@@ -79,6 +86,7 @@ class WindowSkeleton(tk.Tk):
         self.detection_over_total_bar.pack(side=LEFT, padx=(0, 5))
         self.revert5.pack(side=LEFT)
         self.previous_detection.pack(side=LEFT, padx=(5, 0))
+        self.pause_detection.pack(side=LEFT, padx=(5, 0))
         self.next_detection.pack(side=LEFT, padx=5)
         self.skip5.pack(side=LEFT)
         self.num_frame_label.pack(side=RIGHT)
@@ -131,7 +139,7 @@ class WindowSkeleton(tk.Tk):
         # allowing the buttons to resize dynamically
         for col in range(3):
             button_frame.grid_columnconfigure(col, weight=1)
-        button_frame.pack(fill=BOTH, padx=10, pady=(20, 10))
+        button_frame.pack(fill=BOTH, padx=20, pady=(20, 10))
         # Close button
         bottom_btn_frame = Frame(self.bottom_frame)
         self.close_btn = Button(bottom_btn_frame, default_button, text='Close', bg='#F75757',
@@ -145,7 +153,7 @@ class WindowSkeleton(tk.Tk):
         self.close_btn.grid(row=0, column=1, sticky='ew')
         self.see_detections_btn.grid(row=0, column=0, sticky='ew')
         self.change_def_parameters.grid(row=0, column=2, sticky='ew')
-        bottom_btn_frame.pack(fill=BOTH, padx=10, pady=(10, 0))
+        bottom_btn_frame.pack(fill=BOTH, padx=20, pady=(10, 0))
         for col in range(3):
             bottom_btn_frame.grid_columnconfigure(col, weight=1)
         self.bottom_frame.grid(row=2, column=0, sticky='nsew')

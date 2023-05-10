@@ -15,6 +15,7 @@ stop_slideshow = False
 fgModel = cv2.createBackgroundSubtractorMOG2()
 photo_list = []
 detection_set = set()
+pause_detection = False
 current_read_frames = 0
 num_saved_frames = 0
 detected_frames = 0
@@ -101,13 +102,23 @@ def save_frames(self, video_path):
     global fgmask_directory
     global stop_all_thread
     global vid_frame_counter
+    global pause_detection
 
     create_directory(frame_directory)
     create_directory(fgmask_directory)
 
     vid_frame_counter = 0
     ret, frame = vid_capture.read()
+    frame = cv2.resize(frame, (400, 400))
     while ret:
+        while pause_detection:
+            self.webcam_btn['state'] = NORMAL
+            self.photo_btn['state'] = NORMAL
+            self.video_btn['state'] = NORMAL
+            if stop_all_thread:
+                return
+            time.sleep(1)
+
         if stop_all_thread:
             return
         if flag and num_saved_frames > self.detection_after_processing_n_frames:
@@ -135,7 +146,7 @@ def save_frames(self, video_path):
 def process_frame(frame, frame_save_path, fgmask_save_path):
     try:
         global num_saved_frames
-        frame = cv2.resize(frame, dsize=(600, 490))
+        frame = cv2.resize(frame, dsize=(680, 550))
         # foreground mask
         fgmask = fgModel.apply(frame)
         k_r = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
@@ -180,7 +191,9 @@ def detect_and_save_frames_helper(self):
             detect_and_save_n_frames(self)
             num_saved_frames -= self.detection_after_processing_n_frames
 
-    while num_saved_frames > self.detection_after_processing_n_frames:
+    while num_saved_frames > self.detection_after_processing_n_frames and not stop_all_thread:
+        if stop_all_thread:
+            return
         detect_and_save_n_frames(self)
         num_saved_frames -= self.detection_after_processing_n_frames
 
@@ -227,9 +240,14 @@ def detect_and_save_n_frames(self):
 def save_sequence(min_prob, c, frame_counter, output_path):
     global photo_list
     global stop_all_thread
+    global pause_detection
     k = 1
     try:
         for frame in c:
+            while pause_detection:
+                if stop_all_thread:
+                    return
+                time.sleep(1)
             if stop_all_thread:
                 return
             imName = str(frame_counter) + '_' + str(k)
@@ -257,6 +275,26 @@ def show_frame_thread(self):
         pass
     self.video_frame.place(x=0, y=0, relheight=1, relwidth=1)
     show_frame(self, True)
+
+
+def toggle_detection(self):
+    global pause_detection
+
+    if not pause_detection:
+        self.webcam_btn['state'] = NORMAL
+        self.photo_btn['state'] = NORMAL
+        self.video_btn['state'] = NORMAL
+
+        self.pause_detection.config(text='Resume')
+        pause_detection = True
+
+    else:
+        self.webcam_btn['state'] = DISABLED
+        self.photo_btn['state'] = DISABLED
+        self.video_btn['state'] = DISABLED
+
+        self.pause_detection.config(text='Pause')
+        pause_detection = False
 
 
 # this functions shows the output on the screen

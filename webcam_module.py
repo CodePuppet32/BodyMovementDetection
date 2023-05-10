@@ -22,7 +22,7 @@ def show_webcam(self):
     self.image_frame.place_forget()
     self.video_frame.place_forget()
     self.webcam_frame.place(x=0, y=0, relheight=1, relwidth=1)
-    threading.Thread(target=self.start_webcam_feed, args=()).start()
+    threading.Thread(target=start_webcam_feed, args=(self,)).start()
 
 
 # Accepts no parameter

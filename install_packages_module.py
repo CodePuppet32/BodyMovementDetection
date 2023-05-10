@@ -1,6 +1,6 @@
 import threading
 from tkinter import *
-from tkinter.ttk import Progressbar
+from tkinter.ttk import *
 import time
 import os
 import shutil
