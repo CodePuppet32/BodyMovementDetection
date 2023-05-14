@@ -1,4 +1,3 @@
-import install_packages_module
 from tkinter import messagebox
 import window_skelton
 

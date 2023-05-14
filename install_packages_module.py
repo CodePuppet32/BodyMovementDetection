@@ -33,7 +33,7 @@ def install_modules():
     os.system('pip3 install -r requirements.txt')
 
     resnet_model_path = 'models\\resnet50_coco_best_v2.1.0.h5'
-    if not os.path.exists(resnet_model_path):
+    if not os.path.exists('models'):
         os.mkdir('models')
         url = 'https://github.com/fizyr/keras-retinanet/releases/download/0.5.1/resnet50_coco_best_v2.1.0.h5'
         c = urllib3.PoolManager()

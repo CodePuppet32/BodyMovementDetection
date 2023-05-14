@@ -10,6 +10,7 @@ import system_usage_module
 from tkinter import colorchooser
 # import detections_module
 import photo_module
+from spotify import Spotify
 from gloval_vars import *
 import os
 
@@ -18,8 +19,6 @@ class WindowSkeleton(tk.Tk):
         file_path = os.path.realpath(__file__)
         file_path = os.path.dirname(file_path)
         resources_path = os.path.join(file_path, 'resources')
-        classification_module.save_detection(60, cv2.imread(os.path.join(resources_path, 'default_image.png')),
-                                             resources_path)
         super().__init__()
         self.geometry('{}x{}'.format(700, 800))
         self.resizable(True, True)
@@ -27,6 +26,7 @@ class WindowSkeleton(tk.Tk):
         self.title('Body Movement Detector')
 
         # default parameters
+        self.sp = Spotify()
         self.minimum_probability = 60
         self.read_nth_frame_video = 12
         self.detection_after_processing_n_frames = 50
@@ -130,9 +130,9 @@ class WindowSkeleton(tk.Tk):
         self.photo_btn = Button(button_frame, default_button, text='Image', bg='#3BCC59', activeforeground='#3BCC59',
                                 command=lambda: photo_module.show_photo(self))
         self.photo_btn.grid(row=0, column=0, sticky='ew')
-        self.video_btn = Button(button_frame, default_button, text='Video', bg='#FF71A5', activeforeground='#FF71A5',
-                                command=lambda: video_module.show_video(self))
-        self.video_btn.grid(row=0, column=1, sticky='ew')
+        # self.video_btn = Button(button_frame, default_button, text='Video', bg='#FF71A5', activeforeground='#FF71A5',
+        #                         command=lambda: video_module.show_video(self))
+        # self.video_btn.grid(row=0, column=1, sticky='ew')
         self.webcam_btn = Button(button_frame, default_button, text='WebCam', bg='#FFCC9E', activeforeground='#FFCC9E',
                                  command=lambda: webcam_module.show_webcam(self))
         self.webcam_btn.grid(row=0, column=2, sticky='ew')

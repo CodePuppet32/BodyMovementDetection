@@ -4,6 +4,7 @@ import cv2
 import classification_module
 from helper_functions import *
 from PIL import Image
+import numpy as np
 from PIL import ImageTk
 
 
@@ -36,11 +37,12 @@ def show_photo_thread(self, image_path):
     self.image_frame['image'] = img
     self.image_frame.image = img
 
-    detection_directory = 'detections\\photos\\'
-    create_directory(detection_directory)
+    genre, image = classification_module.save_detection(image)
 
-    classification_module.save_detection(self.minimum_probability, image, detection_directory + img_name)
+    if not genre:
+        return
+
+    self.sp.model_point_of_contact(genre)
     image = ImageTk.PhotoImage(Image.fromarray(image[:, :, ::-1]))
-
     self.image_frame['image'] = image
     self.image_frame.image = image

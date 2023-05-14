@@ -32,10 +32,15 @@ def start_webcam_feed(self):
     webcam_feed_save_path = 'DetectedImage\\webcam\\image'
     while 1:
         _, frame = self.vid.read()
-        classification_module.save_detection(self.minimum_probability, frame, webcam_feed_save_path+str(counter))
+        genre, image = classification_module.save_detection(frame)
+
+        if not genre:
+            return
+
         image = ImageTk.PhotoImage(Image.fromarray(frame[:, :, ::-1]))
         self.webcam_frame['image'] = image
         self.webcam_frame.image = image
+
         k = cv2.waitKey(1) & 0xff
         if k == 27:
             break
